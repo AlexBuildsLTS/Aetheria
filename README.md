@@ -92,3 +92,31 @@ Aetheria/
 ├── lwjgl3/            # Desktop launcher (for fast debugging) [cite: 105, 106]
 └── assets/            # 3D Models (.glb), Textures, Skins, Shaders, Sounds [cite: 107, 108]
 ```
+
+#
+
+![alt text](image-1.png)
+
+```text
+
+./gradlew clean          # Clean build artifacts [cite: 128]
+./gradlew lwjgl3:run     # Launch PC Desktop testing [cite: 128]
+./gradlew android:assembleDebug # Generate Android APK [cite: 130]
+```
+
+#
+
+```
+## 📄 Roadmap
+[x] Phase 1: Foundation (Gradle Setup, ECS Core, PBR Rendering, Auth)
+
+[x] Phase 2: Movement (Joystick/WASD, Physics, Slide Mechanics, Camera)
+
+[ ] Phase 3: Multiplayer (Realtime Position Sync, Snapshot Interpolation, Chat)
+
+[ ] Phase 4: Gameplay (Inventory Grid, Loot Tables, Ability DNA System)
+
+[ ] Phase 5: World (Rust Lands, Neon Forest, Raid Boss: Glitch Leviathan)
+
+Powered by LibGDX & Supabase
+```
