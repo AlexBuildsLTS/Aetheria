@@ -1,0 +1,58 @@
+# --- SENSITIVE DATA & CREDENTIALS ---
+# Never commit your Supabase keys or local environment variables
+local.properties
+.env
+config.toml
+secrets.xml
+*.jks
+*.keystore
+google-services.json
+
+# --- GRADLE & BUILD ---
+# Ignore build outputs and the internal gradle folder
+.gradle/
+build/
+/*/build/
+bin/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# --- INTELLIJ / ANDROID STUDIO ---
+# Ignore IDE-specific settings that aren't shared across teams
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+
+# --- OS SPECIFIC ---
+# System-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- ANDROID SPECIFIC ---
+# Captures and native build artifacts
+/captures
+.externalNativeBuild
+.cxx
+ndk-stack.visualizers
+
+# --- LIBGDX / LWJGL3 ---
+# If you use Packr or other distribution tools
+/lwjgl3/out
+/lwjgl3/dist
+*.log
+
+# --- SUPABASE & BACKEND ---
+# Ignore local supabase environment data if using the CLI
+supabase/.temp/
+supabase/.storage/
+supabase/.env
