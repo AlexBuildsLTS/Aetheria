@@ -1,18 +1,39 @@
 package com.aetheria.mmo
 
-import com.aetheria.mmo.managers.ResourceManager
-import com.aetheria.mmo.screens.LoadingScreen
-import com.badlogic.gdx.Game
 
-class AetheriaGame : Game() {
+import com.badlogic.gdx.Game
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g3d.ModelBatch
+import com.aetheria.mmo.managers.ResourceManager
+
+
+
+
+
+
+class AetheriaGame : Game() { // <--- MUST EXTEND GAME
+    lateinit var batch: SpriteBatch
+    lateinit var modelBatch: ModelBatch
 
     override fun create() {
-        // Start with the Loading Screen
-        setScreen(LoadingScreen(this))
+        batch = SpriteBatch()
+        modelBatch = ModelBatch()
+
+        // Load Assets
+        ResourceManager.loadAll()
+
+
     }
 
+
     override fun dispose() {
-        super.dispose()
-        ResourceManager.dispose() // Clean up global assets
+        super.dispose() // <--- Disposes the active screen
+
+
+        // Check initialization before disposing to prevent crashes
+        if (::batch.isInitialized) batch.dispose()
+        if (::modelBatch.isInitialized) modelBatch.dispose()
+
+        ResourceManager.dispose()
     }
 }

@@ -10,6 +10,7 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+        freeCompilerArgs.add("-Xjvm-default=all")
     }
 }
 
@@ -18,6 +19,10 @@ dependencies {
     implementation(libs.gdx.backend.lwjgl3)
 
     // Explicitly add the natives with the classifier
+    runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-desktop")
+    runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-desktop")
+    runtimeOnly("com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-desktop")
+    runtimeOnly("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.13.1:natives-desktop")
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-desktop")
     runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-desktop")
 }

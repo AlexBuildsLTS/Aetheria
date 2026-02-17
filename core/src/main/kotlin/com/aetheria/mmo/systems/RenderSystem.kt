@@ -1,40 +1,37 @@
 package com.aetheria.mmo.systems
 
-import com.aetheria.mmo.components.ModelComponent
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.core.Family
 import com.badlogic.ashley.systems.IteratingSystem
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.g3d.Environment
 import com.badlogic.gdx.graphics.g3d.ModelBatch
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
+import com.aetheria.mmo.components.ModelComponent
+import com.aetheria.mmo.components.TransformComponent
 
-class RenderSystem(private val camera: PerspectiveCamera) : IteratingSystem(
-    Family.all(ModelComponent::class.java).get()
+class RenderSystem(private val camera: Camera, private val environment: Environment) : IteratingSystem(
+    // This looks for entities that have BOTH a Model AND a Position
+    Family.all(ModelComponent::class.java, TransformComponent::class.java).get()
 ) {
-    private val modelBatch = ModelBatch()
-    private val environment = Environment()
+    private val batch = ModelBatch()
 
-    init {
-        // Simple lighting setup
-        environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f))
-        environment.add(DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f))
-    }
-
-    // Called once per frame, before processing entities
     override fun update(deltaTime: Float) {
-        modelBatch.begin(camera)
-        super.update(deltaTime) // This calls processEntity for every object
-        modelBatch.end()
+        batch.begin(camera)
+        super.update(deltaTime)
+        batch.end()
     }
 
-    // Called for every single entity that has a ModelComponent
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val modelComp = entity.getComponent(ModelComponent::class.java)
-        if (modelComp.isVisible) {
-            modelBatch.render(modelComp.modelInstance, environment)
+        val transform = entity.getComponent(TransformComponent::class.java)
+
+        if (modelComp.isVisible && !transform.isHidden) {
+            // SYNC: Move the 3D model to where the logic says it should be
+            // We use 'modelInstance' here because that is what we defined in Step 2
+            modelComp.modelInstance.transform.set(transform.position, transform.rotation)
+
+            // RENDER: Draw it
+            batch.render(modelComp.modelInstance, environment)
         }
     }
 }

@@ -1,32 +1,35 @@
 [versions]
 kotlin = "2.0.0"
-agp = "8.4.0"
+agp = "8.2.2"
 gdx = "1.13.1"
 ashley = "1.7.4"
-ktor = "3.0.0"
-supabase = "3.0.0"
+ktor = "2.3.11"
+supabase = "2.6.1"
 coroutines = "1.9.0"
+androidxSplashscreen = "1.0.1" # <-- ADDED
 
 [libraries]
 # Core
 gdx-core = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdx" }
+gdx-box2d = { module = "com.badlogicgames.gdx:gdx-box2d", version.ref = "gdx" }
+gdx-freetype = { module = "com.badlogicgames.gdx:gdx-freetype", version.ref = "gdx" }
+ashley = { module = "com.badlogicgames.ashley:ashley", version.ref = "ashley" }
+
 
 # Desktop
 gdx-backend-lwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdx" }
 gdx-platform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdx" }
 gdx-freetype-platform = { module = "com.badlogicgames.gdx:gdx-freetype-platform", version.ref = "gdx" }
+gdx-box2d-platform = { module = "com.badlogicgames.gdx:gdx-box2d-platform", version.ref = "gdx" }
 
-# Android (THIS WAS MISSING)
+# Android
 gdx-backend-android = { module = "com.badlogicgames.gdx:gdx-backend-android", version.ref = "gdx" }
-
-# Common
-gdx-freetype = { module = "com.badlogicgames.gdx:gdx-freetype", version.ref = "gdx" }
-ashley = { module = "com.badlogicgames.ashley:ashley", version.ref = "ashley" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidxSplashscreen" } # <-- ADDED
 
 # Networking
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
-supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabase" }
+supabase-gotrue = { module = "io.github.jan-tennert.supabase:gotrue-kt", version.ref = "supabase" }
 supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "supabase" }
 supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt", version.ref = "supabase" }
 
@@ -38,3 +41,6 @@ kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core",
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+[bundles] # <-- ADDED SECTION
+ktor = ["ktor-client-core", "ktor-client-cio"]
+supabase = ["supabase-gotrue", "supabase-postgrest", "supabase-realtime"]

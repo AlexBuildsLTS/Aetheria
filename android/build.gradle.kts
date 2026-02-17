@@ -22,18 +22,30 @@ android {
         }
     }
 
-    // FIX: Use modern compiler options for Kotlin 2.0
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-        }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
+}
+
+kotlin {
+    jvmToolchain(8)
 }
 
 dependencies {
     implementation(project(":core"))
-    // This now works because we added it back to TOML
     implementation(libs.gdx.backend.android)
+    implementation(libs.androidx.core.splashscreen)
+
+    implementation(libs.gdx.core)
+    implementation(libs.gdx.box2d)
+    implementation(libs.gdx.freetype)
+    implementation(libs.ashley)
+
+
+
+
+
 
     // FIX: Manually define natives for Android to avoid TOML errors
     implementation("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-armeabi-v7a")
@@ -41,8 +53,12 @@ dependencies {
     implementation("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-x86")
     implementation("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-x86_64")
 
+
+
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-armeabi-v7a")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-arm64-v8a")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-x86")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-x86_64")
+
+
 }

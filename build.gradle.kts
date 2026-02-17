@@ -1,14 +1,13 @@
-// Root build.gradle.kts
+plugins {
+    alias(libs.plugins.androidApplication) apply false
+    alias(libs.plugins.kotlinAndroid) apply false
+    alias(libs.plugins.kotlinJvm) apply false
+}
 
 allprojects {
     version = "1.0.0"
-
-    // ERROR FIX: We removed the 'repositories { ... }' block from here.
-    // They are already handled in settings.gradle.kts.
 }
 
-// Clean task for housekeeping
 tasks.register<Delete>("clean") {
-    // FIX: Updated to use the new Gradle API (fixes the 'buildDir' deprecation warning too)
     delete(rootProject.layout.buildDirectory)
 }
