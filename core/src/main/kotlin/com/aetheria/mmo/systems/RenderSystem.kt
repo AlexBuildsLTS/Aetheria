@@ -8,6 +8,8 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.graphics.g3d.Environment
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
+import com.badlogic.gdx.graphics.g3d.utils.DefaultShaderProvider
+import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
 import com.badlogic.gdx.math.Matrix4
 import com.aetheria.mmo.components.ModelComponent
 import com.aetheria.mmo.components.TransformComponent

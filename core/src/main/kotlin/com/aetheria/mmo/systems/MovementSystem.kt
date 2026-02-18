@@ -13,7 +13,11 @@ import com.aetheria.mmo.components.PlayerComponent
 /**
  * AAA+ Tier Movement System
  * Handles WASD keyboard input and applies velocity to player entities.
- * Features smooth acceleration/deceleration and normalized diagonal movement.
+ * Features:
+ * - Smooth acceleration/deceleration
+ * - Normalized diagonal movement
+ * - Jump with gravity
+ * - Ground collision
  */
 class MovementSystem : IteratingSystem(
     Family.all(
@@ -27,24 +31,44 @@ class MovementSystem : IteratingSystem(
     private val acceleration = 30f // How fast we reach max speed
     private val deceleration = 20f // How fast we stop
 
+    // Jump & Gravity
+    private val jumpForce = 12f
+    private val gravity = -25f
+    private val groundLevel = 0f
+    private var isGrounded = true
+
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val transform = entity.getComponent(TransformComponent::class.java)
         val velocity = entity.getComponent(VelocityComponent::class.java)
 
-        // Get input direction
+        // Get horizontal input direction
         val inputDir = getInputDirection()
 
-        // Apply acceleration or deceleration
+        // Apply horizontal acceleration or deceleration
         if (inputDir.len2() > 0.01f) {
             // Player is pressing movement keys
             inputDir.nor() // Normalize to prevent faster diagonal movement
 
             // Smoothly accelerate towards target velocity
             tempVelocity.set(inputDir).scl(moveSpeed)
-            velocity.linear.lerp(tempVelocity, acceleration * deltaTime)
+            velocity.linear.x = lerp(velocity.linear.x, tempVelocity.x, acceleration * deltaTime)
+            velocity.linear.z = lerp(velocity.linear.z, tempVelocity.z, acceleration * deltaTime)
         } else {
             // No input - decelerate to stop
-            velocity.linear.lerp(Vector3.Zero, deceleration * deltaTime)
+            velocity.linear.x = lerp(velocity.linear.x, 0f, deceleration * deltaTime)
+            velocity.linear.z = lerp(velocity.linear.z, 0f, deceleration * deltaTime)
+        }
+
+        // Handle jumping
+        isGrounded = transform.position.y <= groundLevel
+        if (isGrounded && Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            velocity.linear.y = jumpForce
+            Gdx.app.log("Movement", "Jump!")
+        }
+
+        // Apply gravity
+        if (!isGrounded || velocity.linear.y > 0) {
+            velocity.linear.y += gravity * deltaTime
         }
 
         // Apply velocity to position
@@ -54,7 +78,13 @@ class MovementSystem : IteratingSystem(
             velocity.linear.z * deltaTime
         )
 
-        // Optional: Clamp to world bounds (example: -50 to 50)
+        // Ground collision
+        if (transform.position.y < groundLevel) {
+            transform.position.y = groundLevel
+            velocity.linear.y = 0f
+        }
+
+        // Clamp to world bounds
         transform.position.x = transform.position.x.coerceIn(-50f, 50f)
         transform.position.z = transform.position.z.coerceIn(-50f, 50f)
     }
@@ -81,5 +111,9 @@ class MovementSystem : IteratingSystem(
         }
 
         return tempVelocity
+    }
+
+    private fun lerp(start: Float, end: Float, alpha: Float): Float {
+        return start + (end - start) * alpha.coerceIn(0f, 1f)
     }
 }

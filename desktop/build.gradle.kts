@@ -55,12 +55,23 @@ sourceSets {
 tasks.register<JavaExec>("run") {
     group = "application"
     description = "Runs the desktop application"
-    workingDir = File("${rootProject.projectDir}/assets")
-    jvmArgs = listOf(
-        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-        "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
-        "-XstartOnFirstThread"  // Required for macOS, harmless on Linux
-    )
+    workingDir = rootProject.projectDir.resolve("assets")
+
+    // Detect OS and set JVM args accordingly
+    val osName = System.getProperty("os.name").lowercase()
+    jvmArgs = if (osName.contains("mac")) {
+        listOf(
+            "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+            "-XstartOnFirstThread"  // Required for macOS only
+        )
+    } else {
+        listOf(
+            "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+            "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED"
+        )
+    }
+
     mainClass.set("com.aetheria.mmo.desktop.DesktopLauncherKt")
     classpath = sourceSets.main.get().runtimeClasspath
     standardInput = System.`in`

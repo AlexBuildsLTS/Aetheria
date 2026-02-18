@@ -25,8 +25,8 @@ class LoadingScreen(private val game: AetheriaGame) : ScreenAdapter() {
 
         // Update asset loading
         if (ResourceManager.update()) {
-            // All assets loaded -> Switch to Game World
-            game.screen = GameWorldScreen(game)
+            // All assets loaded -> Switch to Character Select
+            game.screen = CharacterSelectScreen(game)
             return
         }
 
