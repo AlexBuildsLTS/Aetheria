@@ -3,15 +3,12 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
+    jvmToolchain(21)
 }
 
 dependencies {
@@ -19,12 +16,12 @@ dependencies {
     implementation(libs.gdx.backend.lwjgl3)
 
     // Explicitly add the natives with the classifier
-    runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-desktop")
-    runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-desktop")
-    runtimeOnly("com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-desktop")
-    runtimeOnly("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.13.1:natives-desktop")
-    runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-desktop")
-    runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-desktop")
+    runtimeOnly(libs.gdx.platform)
+    runtimeOnly(libs.gdx.freetype.platform.v1140)
+    runtimeOnly(libs.gdx.box2d.platform.v3110)
+    runtimeOnly(libs.gdx.backend.lwjgl3.v1140)
+    runtimeOnly(libs.gdx.platform.v1140)
+    runtimeOnly(libs.gdx.freetype.platform)
 }
 
 // Configures the run task

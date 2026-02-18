@@ -3,20 +3,21 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 dependencies {
     // Core Engine
     api(libs.gdx.core)
-    api(libs.gdx.box2d) // This now resolves correctly from the TOML file
+    api(libs.gdx.box2d)
     api(libs.ashley)
     api(libs.gdx.freetype)
+    api(libs.gdx.gltf) // 3D model loading (GLTF/GLB)
 
     // Kotlin
     implementation(libs.kotlin.stdlib)

@@ -1,83 +1,127 @@
 package com.aetheria.mmo.screens
 
 import com.badlogic.ashley.core.Engine
-import com.badlogic.ashley.core.PooledEngine
-import com.badlogic.gdx.Gdx
+import com.badlogic.ashley.core.Entity
 import com.badlogic.gdx.ScreenAdapter
-import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.PerspectiveCamera
-import com.badlogic.gdx.graphics.g3d.Environment
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.utils.CameraInputController
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Color
+import com.aetheria.mmo.AetheriaGame
+import com.aetheria.mmo.components.*
+import com.aetheria.mmo.managers.ResourceManager
+import com.aetheria.mmo.systems.*
 
-// --- YOUR PROJECT IMPORTS ---
-import com.aetheria.mmo.entities.EntityBuilder
-import com.aetheria.mmo.systems.AnimationSystem
-import com.aetheria.mmo.systems.PlayerControlSystem
-import com.aetheria.mmo.systems.RenderSystem
-// If RenderSystem is missing, comment it out for a second, but it should be there from your file list.
+/**
+ * AAA+ Tier Game World Screen
+ * Main gameplay screen with full ECS integration:
+ * - 3D model rendering with GLTF support
+ * - WASD movement controls
+ * - Third-person camera with mouse/keyboard rotation
+ * - Animation system
+ */
+class GameWorldScreen(val game: AetheriaGame) : ScreenAdapter() {
+    private val engine = Engine()
+    private val camera = PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
 
-class GameWorldScreen : ScreenAdapter() {
-
-    // 1. The Entity Component System (ECS) Engine
-    private val engine: Engine = PooledEngine()
-
-    // 2. The 3D Camera & Controller (So you can look around)
-    private val camera: PerspectiveCamera
-    private val camController: CameraInputController
-
-    // 3. The Lighting Environment
-    private val environment: Environment
+    // Systems
+    private lateinit var renderSystem: RenderSystem
+    private lateinit var cameraSystem: CameraSystem
+    private lateinit var movementSystem: MovementSystem
 
     init {
-        // --- A. Setup Camera ---
-        camera = PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-        camera.position.set(2f, 2f, 5f) // Positioned up and back to see the model
-        camera.lookAt(0f, 1f, 0f)       // Look at the character's chest height
+        setupCamera()
+        setupSystems()
+        createPlayer()
+
+        Gdx.app.log("GameWorldScreen", "Initialized successfully")
+        Gdx.app.log("Controls", "WASD: Move | Arrow Keys/Right Mouse: Rotate Camera | Scroll: Zoom")
+    }
+
+    private fun setupCamera() {
+        camera.position.set(10f, 10f, 10f)
+        camera.lookAt(0f, 0f, 0f)
         camera.near = 0.1f
         camera.far = 300f
         camera.update()
+    }
 
-        // Allow mouse/touch to rotate camera
-        camController = CameraInputController(camera)
-        Gdx.input.inputProcessor = camController
+    private fun setupSystems() {
+        // Order matters: Movement -> Camera -> Render
+        movementSystem = MovementSystem()
+        cameraSystem = CameraSystem(camera)
+        renderSystem = RenderSystem(game.modelBatch, camera)
 
-        // --- B. Setup Lighting (High Fidelity PBR-lite) ---
-        environment = Environment()
-        environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f))
-        environment.add(DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f))
+        engine.addSystem(movementSystem)
+        engine.addSystem(cameraSystem)
+        engine.addSystem(renderSystem)
+    }
 
-        // --- C. Add Systems to Engine ---
-        // 1. Animation System (Updates bones)
-        engine.addSystem(AnimationSystem())
+    private fun createPlayer() {
+        val player = Entity()
 
-        // 2. Player Control (Reads Joystick)
-        engine.addSystem(PlayerControlSystem(camera))
+        // Load the Vanguard 3D model
+        val model = ResourceManager.getModel("char_vanguard_base.glb")
+        val modelInstance = ModelInstance(model)
 
-        // 3. Render System (Draws the model)
-        // Pass the camera and environment so the system knows how to draw
-        engine.addSystem(RenderSystem(camera, environment))
+        // Model Component
+        val modelComp = ModelComponent().apply {
+            this.modelInstance = modelInstance
+            isVisible = true
+        }
 
-        // --- D. Spawn the Character ---
-        // We call the EntityBuilder we just fixed.
-        // Make sure this string matches the file you renamed exactly!
-        val playerEntity = EntityBuilder.createPlayer("char_vanguard_base.glb")
+        // Transform Component (position, rotation, scale)
+        val transformComp = TransformComponent().apply {
+            position.set(0f, 0f, 0f) // Start at world origin
+            scale.set(1f, 1f, 1f)
+        }
 
-        engine.addEntity(playerEntity)
+        // Velocity Component (for movement)
+        val velocityComp = VelocityComponent().apply {
+            speed = 8f
+        }
+
+        // Player Component (marks this as the player entity)
+        val playerComp = PlayerComponent()
+
+        // Animation Component
+        val animComp = AnimationComponent().apply {
+            controller = AnimationController(modelInstance)
+
+            // Auto-play first animation if available
+            if (modelInstance.animations.size > 0) {
+                val animName = modelInstance.animations[0].id
+                controller.setAnimation(animName, -1) // -1 = loop forever
+                currentAnimation = animName
+                Gdx.app.log("GameWorld", "Playing animation: $animName")
+            }
+        }
+
+        // Assemble the entity
+        player.add(modelComp)
+        player.add(transformComp)
+        player.add(velocityComp)
+        player.add(playerComp)
+        player.add(animComp)
+
+        // Add to engine
+        engine.addEntity(player)
+
+        Gdx.app.log("GameWorld", "Vanguard player entity created and added to engine")
     }
 
     override fun render(delta: Float) {
-        // 1. Clear Screen
+        // Clear screen with a dark blue-grey background (void aesthetic)
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1f)
         Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1f) // Dark Sci-fi Blue background
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
 
-        // 2. Update Camera Controls
-        camController.update()
+        // Enable depth testing for proper 3D rendering
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
 
-        // 3. Update ECS Engine (Process all logic + rendering)
+        // Update all ECS systems
         engine.update(delta)
     }
 
@@ -85,5 +129,10 @@ class GameWorldScreen : ScreenAdapter() {
         camera.viewportWidth = width.toFloat()
         camera.viewportHeight = height.toFloat()
         camera.update()
+    }
+
+    override fun dispose() {
+        // Engine will be disposed by the game
+        Gdx.app.log("GameWorldScreen", "Disposed")
     }
 }

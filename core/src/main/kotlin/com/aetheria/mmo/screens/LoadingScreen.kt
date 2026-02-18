@@ -23,14 +23,15 @@ class LoadingScreen(private val game: AetheriaGame) : ScreenAdapter() {
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
-        // update() returns true when loading is finished
-        if (ResourceManager.assets.update()) {
-            // Loading Complete -> Switch to Main Menu
-            game.screen = GameWorldScreen()
-        } else {
-            // Still loading -> Update progress bar
-            progress = MathUtils.lerp(progress, ResourceManager.assets.progress, 0.1f)
+        // Update asset loading
+        if (ResourceManager.update()) {
+            // All assets loaded -> Switch to Game World
+            game.screen = GameWorldScreen(game)
+            return
         }
+
+        // Smooth progress bar animation
+        progress = MathUtils.lerp(progress, ResourceManager.getProgress(), 0.1f)
 
         // Draw the Progress Bar
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)

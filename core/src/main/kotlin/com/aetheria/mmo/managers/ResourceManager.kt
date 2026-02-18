@@ -4,15 +4,18 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.utils.Disposable
+import net.mgsx.gltf.loaders.glb.GLBAssetLoader
+import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader
+import net.mgsx.gltf.scene3d.scene.SceneAsset
 
 /**
- * Manages the loading and disposal of game assets.
- * Includes error checking to prevent crashes if files are missing.
+ * AAA+ Tier Resource Manager
+ * Handles loading and caching of all game assets using gdx-gltf for 3D models.
  */
 object ResourceManager : Disposable {
-    val assets = AssetManager()
+    private val assetManager = AssetManager()
 
-    // List of model files we expect to find in assets/models/characters/
+    // Character model paths
     private val characterModels = listOf(
         "models/characters/char_vanguard_base.glb",
         "models/characters/char_weaver_base.glb",
@@ -20,45 +23,85 @@ object ResourceManager : Disposable {
         "models/characters/char_medic_base.glb"
     )
 
+    init {
+        // Register GLTF/GLB loaders for 3D model support
+        assetManager.setLoader(SceneAsset::class.java, ".gltf", GLTFAssetLoader())
+        assetManager.setLoader(SceneAsset::class.java, ".glb", GLBAssetLoader())
+
+        Gdx.app.log("ResourceManager", "GLTF loaders registered successfully")
+    }
+
+    /**
+     * Loads all game assets asynchronously.
+     * Call update() in a loop until it returns true.
+     */
     fun loadAll() {
-        println("ResourceManager: Starting asset load...")
+        Gdx.app.log("ResourceManager", "Starting asset loading...")
 
-        for (fileName in characterModels) {
-            // CHECK: Does the file actually exist at this path?
-            if (Gdx.files.internal(fileName).exists()) {
-                assets.load(fileName, Model::class.java)
-                println("ResourceManager: Queued $fileName")
+        // Queue all character models for loading
+        for (modelPath in characterModels) {
+            if (Gdx.files.internal(modelPath).exists()) {
+                assetManager.load(modelPath, SceneAsset::class.java)
+                Gdx.app.log("ResourceManager", "Queued: $modelPath")
             } else {
-                // This prints a clear error instead of crashing silently
-                println("ResourceManager ERROR: File not found: $fileName")
-                println("   -> Check your 'assets' folder location.")
+                Gdx.app.error("ResourceManager", "File not found: $modelPath")
             }
-        }
-
-        try {
-            // Attempt to load all queued assets
-            assets.finishLoading()
-            println("ResourceManager: Loading complete.")
-        } catch (e: Exception) {
-            // If it crashes here, print the real reason
-            println("ResourceManager CRASH: ${e.message}")
-            e.printStackTrace()
         }
     }
 
+    /**
+     * Updates the asset manager. Returns true when all assets are loaded.
+     */
+    fun update(): Boolean {
+        return assetManager.update()
+    }
+
+    /**
+     * Gets the loading progress (0.0 to 1.0)
+     */
+    fun getProgress(): Float {
+        return assetManager.progress
+    }
+
+    /**
+     * Blocks until all assets are loaded. Use for synchronous loading.
+     */
+    fun finishLoading() {
+        assetManager.finishLoading()
+        Gdx.app.log("ResourceManager", "All assets loaded successfully!")
+    }
+
+    /**
+     * Retrieves a loaded 3D model by filename.
+     * @param name The filename (e.g., "char_vanguard_base.glb")
+     * @return The Model extracted from the SceneAsset
+     */
     fun getModel(name: String): Model {
         val path = "models/characters/$name"
 
-        // Safety check: Is this specific model actually loaded?
-        if (assets.isLoaded(path, Model::class.java)) {
-            return assets.get(path, Model::class.java)
-        } else {
-            // Return a dummy model or throw a clear error to help debug
-            throw RuntimeException("ResourceManager: Requesting unloaded model: $path. Did loadAll() find it?")
+        if (!assetManager.isLoaded(path, SceneAsset::class.java)) {
+            throw RuntimeException("Model not loaded: $path. Call loadAll() and wait for completion.")
         }
+
+        val sceneAsset = assetManager.get(path, SceneAsset::class.java)
+        return sceneAsset.scene.model
+    }
+
+    /**
+     * Gets the full SceneAsset (includes model, animations, materials)
+     */
+    fun getSceneAsset(name: String): SceneAsset {
+        val path = "models/characters/$name"
+
+        if (!assetManager.isLoaded(path, SceneAsset::class.java)) {
+            throw RuntimeException("SceneAsset not loaded: $path")
+        }
+
+        return assetManager.get(path, SceneAsset::class.java)
     }
 
     override fun dispose() {
-        assets.dispose()
+        assetManager.dispose()
+        Gdx.app.log("ResourceManager", "Resources disposed")
     }
 }

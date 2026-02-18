@@ -1,23 +1,37 @@
 [versions]
+gdxBackendLwjgl3 = "1.13.0"
+gdxBox2dPlatform = "1.13.0"
+gdxFreetypePlatform = "1.13.0"
+gdxPlatform = "1.13.0"
+khealth = "2.1.1"
 kotlin = "2.0.0"
 agp = "8.2.2"
-gdx = "1.13.1"
+gdx = "1.13.0"
 ashley = "1.7.4"
 ktor = "2.3.11"
+ktorServer = "3.0.3"
 supabase = "2.6.1"
 coroutines = "1.9.0"
-androidxSplashscreen = "1.0.1" # <-- ADDED
+postgresql = "42.7.4"
+h2 = "2.3.232"
+cohort = "2.8.2"
+androidxSplashscreen = "1.0.1"
+gdxGltf = "2.2.1"
 
 [libraries]
 # Core
+gdx-backend-lwjgl3-v1140 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdxBackendLwjgl3" }
+gdx-box2d-platform-v3110 = { module = "com.badlogicgames.gdx:gdx-box2d-platform", version.ref = "gdxBox2dPlatform" }
 gdx-core = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdx" }
 gdx-box2d = { module = "com.badlogicgames.gdx:gdx-box2d", version.ref = "gdx" }
 gdx-freetype = { module = "com.badlogicgames.gdx:gdx-freetype", version.ref = "gdx" }
 ashley = { module = "com.badlogicgames.ashley:ashley", version.ref = "ashley" }
+gdx-gltf = { module = "com.github.mgsx-dev:gdx-gltf", version.ref = "gdxGltf" }
 
 
 # Desktop
 gdx-backend-lwjgl3 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3", version.ref = "gdx" }
+gdx-freetype-platform-v1140 = { module = "com.badlogicgames.gdx:gdx-freetype-platform", version.ref = "gdxFreetypePlatform" }
 gdx-platform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdx" }
 gdx-freetype-platform = { module = "com.badlogicgames.gdx:gdx-freetype-platform", version.ref = "gdx" }
 gdx-box2d-platform = { module = "com.badlogicgames.gdx:gdx-box2d-platform", version.ref = "gdx" }
@@ -27,11 +41,38 @@ gdx-backend-android = { module = "com.badlogicgames.gdx:gdx-backend-android", ve
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidxSplashscreen" } # <-- ADDED
 
 # Networking
+gdx-platform-v1140 = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdxPlatform" }
+khealth = { module = "dev.hayden:khealth", version.ref = "khealth" }
+
+# Ktor Client
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktorServer" }
+ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktorServer" }
+
+# Ktor Server
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktorServer" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktorServer" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktorServer" }
+ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorServer" }
+ktor-server-call-logging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktorServer" }
+ktor-server-call-id = { module = "io.ktor:ktor-server-call-id", version.ref = "ktorServer" }
+ktor-server-metrics = { module = "io.ktor:ktor-server-metrics", version.ref = "ktorServer" }
+ktor-server-partial-content = { module = "io.ktor:ktor-server-partial-content", version.ref = "ktorServer" }
+ktor-server-forwarded-header = { module = "io.ktor:ktor-server-forwarded-header", version.ref = "ktorServer" }
+ktor-server-conditional-headers = { module = "io.ktor:ktor-server-conditional-headers", version.ref = "ktorServer" }
+
+# Supabase
 supabase-gotrue = { module = "io.github.jan-tennert.supabase:gotrue-kt", version.ref = "supabase" }
 supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "supabase" }
 supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt", version.ref = "supabase" }
+
+# Database
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+h2-database = { module = "com.h2database:h2", version.ref = "h2" }
+
+# Monitoring
+cohort-ktor = { module = "com.sksamuel.cohort:cohort-ktor", version.ref = "cohort" }
 
 # Utils
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }

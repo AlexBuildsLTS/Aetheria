@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core"))
     implementation(libs.gdx.backend.android)
     implementation(libs.androidx.core.splashscreen)
+    implementation("com.google.android.material:material:1.11.0")
 
     implementation(libs.gdx.core)
     implementation(libs.gdx.box2d)
@@ -52,13 +53,20 @@ dependencies {
     implementation("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-arm64-v8a")
     implementation("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-x86")
     implementation("com.badlogicgames.gdx:gdx-platform:1.13.1:natives-x86_64")
-
+    implementation("com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-armeabi-v7a")
+    implementation("com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-arm64-v8a")
+    implementation("com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-x86")
+    implementation("com.badlogicgames.gdx:gdx-box2d-platform:1.13.1:natives-x86_64")
 
 
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-armeabi-v7a")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-arm64-v8a")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-x86")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-x86_64")
+    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-armeabi-v7a")
+    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-arm64-v8a")
+    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-x86")
+    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-x86_64")
 
 
 }
