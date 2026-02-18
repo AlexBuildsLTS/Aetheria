@@ -28,6 +28,7 @@ class CombatComponent : Component {
     var attackSpeed: Float = 1f
     var critChance: Float = 0.1f
     var critDamage: Float = 2f
+    var isAttacking: Boolean = false
 
     fun canUseAbility(key: String): Boolean {
         return (abilityCooldowns[key] ?: Float.MAX_VALUE) <= 0f

@@ -23,9 +23,20 @@ class SteeringComponent : Component, Pool.Poolable {
     var wanderRadius: Float = 5f
     var wanderDistance: Float = 10f
     var wanderAngle: Float = 0f
+    var wanderJitter: Float = 10f
 
     // Flee behavior parameters
     var fleeDistance: Float = 10f
+
+    // Additional properties for SteeringSystem
+    var seekTarget: Vector3? = null
+    var fleeTarget: Vector3? = null
+    var arriveTarget: Vector3? = null
+    var arriveRadius: Float = 2f
+    var isWandering: Boolean = false
+    var maxSpeed: Float = 5f
+    var maxForce: Float = 10f
+    val facingDirection = Vector3(0f, 0f, 1f)
 
     override fun reset() {
         targetPosition = null
@@ -40,7 +51,16 @@ class SteeringComponent : Component, Pool.Poolable {
         wanderRadius = 5f
         wanderDistance = 10f
         wanderAngle = 0f
+        wanderJitter = 10f
         fleeDistance = 10f
+        seekTarget = null
+        fleeTarget = null
+        arriveTarget = null
+        arriveRadius = 2f
+        isWandering = false
+        maxSpeed = 5f
+        maxForce = 10f
+        facingDirection.set(0f, 0f, 1f)
     }
 }
 
