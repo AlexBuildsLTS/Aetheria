@@ -192,7 +192,8 @@ object ConfigManager : Disposable {
         }
 
         Gdx.graphics.setVSync(vsync)
-        Gdx.graphics.setForegroundFPS(targetFps)
+        // Note: setForegroundFPS is not available in all LibGDX versions
+        // Use Application.setIdleFPS or configure in launcher instead
     }
 
     /**

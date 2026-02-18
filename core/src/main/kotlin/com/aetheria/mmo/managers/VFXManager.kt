@@ -1,6 +1,7 @@
 package com.aetheria.mmo.managers
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Disposable
@@ -15,6 +16,12 @@ object VFXManager : Disposable {
     private val activeEffects = mutableListOf<ActiveEffect>()
     private val effectPools = mutableMapOf<String, MutableList<ParticleEffect>>()
     private val effectTemplates = mutableMapOf<String, String>()
+
+    private fun ParticleEffect.render(batch: com.badlogic.gdx.graphics.g3d.ModelBatch) {
+        // setTransform(com.badlogic.gdx.math.Matrix4().setTranslation(position)) // Position is set when effect is created or updated
+        // update(0f) // Update is handled in the main update loop
+        this.render(batch)
+    }
 
     data class ActiveEffect(
         val effect: ParticleEffect,
@@ -153,11 +160,10 @@ object VFXManager : Disposable {
     /**
      * Renders all active effects
      */
-    fun render() {
-        // Simplified rendering - will be implemented with full particle system
-        activeEffects.forEach { activeEffect ->
-            // Particle rendering will go here
-        }
+    fun render(batch: com.badlogic.gdx.graphics.g3d.ModelBatch) {
+ activeEffects.forEach { activeEffect ->
+ activeEffect.effect.render(batch)
+ }
     }
 
     /**
@@ -226,3 +232,5 @@ object VFXManager : Disposable {
         Gdx.app.log("VFXManager", "VFX manager disposed")
     }
 }
+
+

@@ -8,8 +8,8 @@ kotlin = "2.0.0"
 agp = "8.7.3"
 gdx = "1.13.0"
 ashley = "1.7.4"
-ktor = "2.3.11"
-ktorServer = "3.0.3"
+ktor = "2.3.12"
+ktorServer = "2.3.12"
 supabase = "2.6.1"
 coroutines = "1.9.0"
 postgresql = "42.7.4"
@@ -24,6 +24,7 @@ gdx-backend-lwjgl3-v1140 = { module = "com.badlogicgames.gdx:gdx-backend-lwjgl3"
 gdx-box2d-platform-v3110 = { module = "com.badlogicgames.gdx:gdx-box2d-platform", version.ref = "gdxBox2dPlatform" }
 gdx-core = { module = "com.badlogicgames.gdx:gdx", version.ref = "gdx" }
 gdx-box2d = { module = "com.badlogicgames.gdx:gdx-box2d", version.ref = "gdx" }
+gdx-bullet = { module = "com.badlogicgames.gdx:gdx-bullet", version.ref = "gdx" }
 gdx-freetype = { module = "com.badlogicgames.gdx:gdx-freetype", version.ref = "gdx" }
 ashley = { module = "com.badlogicgames.ashley:ashley", version.ref = "ashley" }
 gdx-gltf = { module = "com.github.mgsx-dev:gdx-gltf", version.ref = "gdxGltf" }
@@ -35,6 +36,7 @@ gdx-freetype-platform-v1140 = { module = "com.badlogicgames.gdx:gdx-freetype-pla
 gdx-platform = { module = "com.badlogicgames.gdx:gdx-platform", version.ref = "gdx" }
 gdx-freetype-platform = { module = "com.badlogicgames.gdx:gdx-freetype-platform", version.ref = "gdx" }
 gdx-box2d-platform = { module = "com.badlogicgames.gdx:gdx-box2d-platform", version.ref = "gdx" }
+gdx-bullet-platform = { module = "com.badlogicgames.gdx:gdx-bullet-platform", version.ref = "gdx" }
 
 # Android
 gdx-backend-android = { module = "com.badlogicgames.gdx:gdx-backend-android", version.ref = "gdx" }
@@ -45,9 +47,10 @@ gdx-platform-v1140 = { module = "com.badlogicgames.gdx:gdx-platform", version.re
 khealth = { module = "dev.hayden:khealth", version.ref = "khealth" }
 
 # Ktor Client
-ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
-ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorServer" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktorServer" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktorServer" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorServer" }
 ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktorServer" }
 
 # Ktor Server

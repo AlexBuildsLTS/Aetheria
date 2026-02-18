@@ -130,11 +130,6 @@ class InputHandler : InputAdapter() {
         return true
     }
 
-    override fun scrolled(amountX: Float, amountY: Float): Boolean {
-        // Handle zoom
-        return true
-    }
-
     // Query methods
     fun isKeyPressed(keycode: Int): Boolean = keysPressed.contains(keycode)
     fun isKeyJustPressed(keycode: Int): Boolean = keysJustPressed.contains(keycode)

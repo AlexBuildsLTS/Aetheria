@@ -8,12 +8,16 @@ import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.math.Vector3
 
-class PlayerControlSystem(private val camera: Camera) : IteratingSystem(
+class PlayerControlSystem(
+    private val camera: Camera,
+    private val joystick: VirtualJoystick? = null
+) : IteratingSystem(
     Family.all(PlayerComponent::class.java, VelocityComponent::class.java, TransformComponent::class.java).get()
 ) {
     private val moveDirection = Vector3()
     private val camDirection = Vector3()
     private val rightVector = Vector3()
+    private val tmpVec = Vector3()
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val velocity = entity.getComponent(VelocityComponent::class.java)
@@ -21,8 +25,8 @@ class PlayerControlSystem(private val camera: Camera) : IteratingSystem(
         val state = entity.getComponent(StateComponent::class.java)
 
         // 1. Read Joystick Input
-        val inputX = VirtualJoystick.getKnobX()
-        val inputY = VirtualJoystick.getKnobY()
+        val inputX = joystick?.getKnobX() ?: 0f
+        val inputY = joystick?.getKnobY() ?: 0f
 
         if (inputX != 0f || inputY != 0f) {
             // 2. Calculate movement relative to Camera (Standard 3rd Person logic)
@@ -30,8 +34,10 @@ class PlayerControlSystem(private val camera: Camera) : IteratingSystem(
             rightVector.set(camera.direction).crs(camera.up).nor()
 
             moveDirection.setZero()
-            moveDirection.add(camDirection.scl(inputY)) // Forward/Back
-            moveDirection.add(rightVector.scl(inputX))   // Left/Right
+            tmpVec.set(camDirection).scl(inputY)
+            moveDirection.add(tmpVec) // Forward/Back
+            tmpVec.set(rightVector).scl(inputX)
+            moveDirection.add(tmpVec)   // Left/Right
             moveDirection.nor().scl(velocity.speed)
 
             velocity.linear.set(moveDirection)
