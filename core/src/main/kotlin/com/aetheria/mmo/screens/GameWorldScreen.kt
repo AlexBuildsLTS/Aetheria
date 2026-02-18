@@ -2,6 +2,7 @@ package com.aetheria.mmo.screens
 
 import com.badlogic.ashley.core.Engine
 import com.badlogic.ashley.core.Entity
+import com.badlogic.ashley.core.Family
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g3d.ModelInstance
@@ -21,6 +22,7 @@ import com.aetheria.mmo.AetheriaGame
 import com.aetheria.mmo.components.*
 import com.aetheria.mmo.managers.ResourceManager
 import com.aetheria.mmo.systems.*
+import com.aetheria.mmo.ui.HUD
 
 /**
  * AAA+ Tier Game World Screen
@@ -48,7 +50,7 @@ class GameWorldScreen(val game: AetheriaGame, private val selectedClass: String 
 
     // UI
     private val uiBatch = SpriteBatch()
-    private val font = BitmapFont()
+    private val hud = HUD()
 
     init {
         setupCamera()
@@ -70,12 +72,18 @@ class GameWorldScreen(val game: AetheriaGame, private val selectedClass: String 
     }
 
     private fun setupSystems() {
-        // Order matters: Movement -> Camera -> Render
+        // Order matters: Movement -> Combat -> Animation -> Health -> Camera -> Render
         movementSystem = MovementSystem()
+        val combatSystem = CombatSystem()
+        val animationSystem = AnimationSystem()
+        val healthSystem = HealthSystem()
         cameraSystem = CameraSystem(camera)
         renderSystem = RenderSystem(game.modelBatch, camera)
 
         engine.addSystem(movementSystem)
+        engine.addSystem(combatSystem)
+        engine.addSystem(animationSystem)
+        engine.addSystem(healthSystem)
         engine.addSystem(cameraSystem)
         engine.addSystem(renderSystem)
     }
@@ -128,16 +136,50 @@ class GameWorldScreen(val game: AetheriaGame, private val selectedClass: String 
         // Player Component (marks this as the player entity)
         val playerComp = PlayerComponent()
 
+        // State Component (for animation state machine)
+        val stateComp = StateComponent().apply {
+            current = StateComponent.IDLE
+        }
+
+        // Health Component
+        val healthComp = HealthComponent().apply {
+            max = 100f
+            current = 100f
+            regen = 2f
+        }
+
+        // Stamina Component
+        val staminaComp = StaminaComponent().apply {
+            max = 100f
+            current = 100f
+            regen = 15f
+        }
+
+        // Combat Component
+        val combatComp = CombatComponent().apply {
+            attackPower = 15f
+            attackSpeed = 1.2f
+        }
+
         // Animation Component
         val animComp = AnimationComponent().apply {
             controller = AnimationController(modelInstance)
 
-            // Auto-play idle/first animation if available
+            // Start with first available animation
             if (modelInstance.animations.size > 0) {
-                val animName = modelInstance.animations[0].id
-                controller.setAnimation(animName, -1) // -1 = loop forever
-                currentAnimation = animName
-                Gdx.app.log("GameWorld", "Playing animation: $animName")
+                // Log all available animations for debugging
+                Gdx.app.log("GameWorld", "Available animations: ${modelInstance.animations.map { it.id }}")
+
+                // Try to find idle-like animation, otherwise use first one
+                val idleAnim = modelInstance.animations.find {
+                    it.id.contains("Idle", ignoreCase = true) ||
+                    it.id.contains("Standing", ignoreCase = true) ||
+                    it.id.contains("Climb", ignoreCase = true)
+                } ?: modelInstance.animations[0]
+
+                controller.setAnimation(idleAnim.id, -1) // -1 = loop forever
+                currentAnimation = idleAnim.id
+                Gdx.app.log("GameWorld", "Starting with animation: ${idleAnim.id}")
             }
         }
 
@@ -146,6 +188,10 @@ class GameWorldScreen(val game: AetheriaGame, private val selectedClass: String 
         player.add(transformComp)
         player.add(velocityComp)
         player.add(playerComp)
+        player.add(stateComp)
+        player.add(healthComp)
+        player.add(staminaComp)
+        player.add(combatComp)
         player.add(animComp)
 
         // Add to engine
@@ -181,20 +227,18 @@ class GameWorldScreen(val game: AetheriaGame, private val selectedClass: String 
     }
 
     private fun renderUI() {
-        uiBatch.begin()
-        font.color = Color.WHITE
+        // Get player entity
+        val playerEntities = engine.getEntitiesFor(Family.all(PlayerComponent::class.java).get())
+        val player = if (playerEntities.size() > 0) playerEntities.first() else null
 
-        // Controls
-        font.draw(uiBatch, "WASD: Move | SPACE: Jump | Arrow Keys: Rotate Camera", 10f, Gdx.graphics.height - 10f)
-        font.draw(uiBatch, "Right Mouse: Drag Camera | Scroll: Zoom | ESC: Menu", 10f, Gdx.graphics.height - 30f)
-
-        // Class info
-        font.draw(uiBatch, "Class: $selectedClass", 10f, Gdx.graphics.height - 60f)
-
-        // FPS
-        font.draw(uiBatch, "FPS: ${Gdx.graphics.framesPerSecond}", 10f, 30f)
-
-        uiBatch.end()
+        // Render professional HUD
+        hud.render(
+            uiBatch,
+            player,
+            selectedClass,
+            Gdx.graphics.width,
+            Gdx.graphics.height
+        )
     }
 
     override fun resize(width: Int, height: Int) {
@@ -206,7 +250,7 @@ class GameWorldScreen(val game: AetheriaGame, private val selectedClass: String 
     override fun dispose() {
         groundModel.dispose()
         uiBatch.dispose()
-        font.dispose()
+        hud.dispose()
         Gdx.app.log("GameWorldScreen", "Disposed")
     }
 }

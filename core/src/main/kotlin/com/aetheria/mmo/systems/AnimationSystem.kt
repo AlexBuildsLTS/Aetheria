@@ -13,26 +13,45 @@ class AnimationSystem : IteratingSystem(
         val anim = entity.getComponent(AnimationComponent::class.java)
         val state = entity.getComponent(StateComponent::class.java)
 
-        // 1. Map Game State to Meshy Animation Names
-        // NOTE: These strings MUST match what you saw in Meshy (Case Sensitive!)
+        // Map Game State to actual available animations
+        // Using fallback system to prevent crashes
         val targetAnim = when (state.current) {
-            StateComponent.IDLE -> "Idle"
-            StateComponent.WALKING -> "Walk"
-            StateComponent.RUNNING -> "Run"
-            StateComponent.JUMPING -> "Jump_Loop"
-            StateComponent.ATTACKING -> "Attack_Melee"
-            else -> "Idle"
+            StateComponent.IDLE -> findAnimation(anim, listOf("Idle", "Climb_Stairs", "Standing_Idle"))
+            StateComponent.WALKING -> findAnimation(anim, listOf("Walk", "Walking", "Run"))
+            StateComponent.RUNNING -> findAnimation(anim, listOf("Run", "Running", "Walk"))
+            StateComponent.JUMPING -> findAnimation(anim, listOf("Jump_Loop", "Jump", "Climb_Stairs"))
+            StateComponent.ATTACKING -> findAnimation(anim, listOf("Attack_Melee", "Attack", "Punch"))
+            else -> findAnimation(anim, listOf("Idle", "Climb_Stairs", "Standing_Idle"))
         }
 
-        // 2. Switch Animation if Changed
+        // Switch Animation if Changed
         if (anim.currentAnimation != targetAnim) {
-            // "0.2f" is the blend time. It blends the old animation into the new one
-            // over 0.2 seconds. This creates the "AAA Smoothness" you want.
-            anim.controller.animate(targetAnim, -1, 0.2f, null, 0f)
-            anim.currentAnimation = targetAnim
+            try {
+                anim.controller.animate(targetAnim, -1, 0.2f, null, 0f)
+                anim.currentAnimation = targetAnim
+            } catch (e: Exception) {
+                // Animation not found, keep current
+            }
         }
 
-        // 3. Update the Controller
+        // Update the Controller
         anim.controller.update(deltaTime)
+    }
+
+    /**
+     * Find first available animation from a list of candidates
+     */
+    private fun findAnimation(anim: AnimationComponent, candidates: List<String>): String {
+        val modelInstance = anim.controller.target
+        val availableAnims = modelInstance.animations.map { it.id }
+
+        // Try each candidate
+        for (candidate in candidates) {
+            val found = availableAnims.find { it.equals(candidate, ignoreCase = true) }
+            if (found != null) return found
+        }
+
+        // Fallback to first available animation
+        return if (availableAnims.isNotEmpty()) availableAnims[0] else ""
     }
 }

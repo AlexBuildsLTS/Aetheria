@@ -9,6 +9,7 @@ import com.badlogic.gdx.math.Vector3
 import com.aetheria.mmo.components.TransformComponent
 import com.aetheria.mmo.components.VelocityComponent
 import com.aetheria.mmo.components.PlayerComponent
+import com.aetheria.mmo.components.StateComponent
 
 /**
  * AAA+ Tier Movement System
@@ -40,14 +41,17 @@ class MovementSystem : IteratingSystem(
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val transform = entity.getComponent(TransformComponent::class.java)
         val velocity = entity.getComponent(VelocityComponent::class.java)
+        val state = entity.getComponent(StateComponent::class.java)
 
         // Get horizontal input direction
         val inputDir = getInputDirection()
+        var isMoving = false
 
         // Apply horizontal acceleration or deceleration
         if (inputDir.len2() > 0.01f) {
             // Player is pressing movement keys
             inputDir.nor() // Normalize to prevent faster diagonal movement
+            isMoving = true
 
             // Smoothly accelerate towards target velocity
             tempVelocity.set(inputDir).scl(moveSpeed)
@@ -87,6 +91,15 @@ class MovementSystem : IteratingSystem(
         // Clamp to world bounds
         transform.position.x = transform.position.x.coerceIn(-50f, 50f)
         transform.position.z = transform.position.z.coerceIn(-50f, 50f)
+
+        // Update state for animations (if StateComponent exists)
+        if (state != null) {
+            state.current = when {
+                !isGrounded -> StateComponent.JUMPING
+                isMoving -> StateComponent.WALKING
+                else -> StateComponent.IDLE
+            }
+        }
     }
 
     /**
