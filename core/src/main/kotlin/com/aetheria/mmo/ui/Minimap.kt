@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
+import kotlin.math.abs
 
 /**
  * Minimap Widget
@@ -42,35 +43,10 @@ class Minimap(
         shapeRenderer.circle(x + size / 2, y + size / 2, 5f)
 
         // Enemies (relative to player)
-        shapeRenderer.color = enemyColor
-        for (enemy in enemies) {
-            val relX = (enemy.x - playerPos.x) * 2f
-            val relZ = (enemy.z - playerPos.z) * 2f
-
-            // Only show if within range
-            if (Math.abs(relX) < size / 2 && Math.abs(relZ) < size / 2) {
-                shapeRenderer.circle(
-                    x + size / 2 + relX,
-                    y + size / 2 + relZ,
-                    3f
-                )
-            }
-        }
+        renderEntities(enemies, playerPos, enemyColor)
 
         // Allies (relative to player)
-        shapeRenderer.color = allyColor
-        for (ally in allies) {
-            val relX = (ally.x - playerPos.x) * 2f
-            val relZ = (ally.z - playerPos.z) * 2f
-
-            if (Math.abs(relX) < size / 2 && Math.abs(relZ) < size / 2) {
-                shapeRenderer.circle(
-                    x + size / 2 + relX,
-                    y + size / 2 + relZ,
-                    3f
-                )
-            }
-        }
+        renderEntities(allies, playerPos, allyColor)
 
         shapeRenderer.end()
 
@@ -79,6 +55,23 @@ class Minimap(
         shapeRenderer.color = borderColor
         shapeRenderer.rect(x, y, size, size)
         shapeRenderer.end()
+    }
+
+    private fun renderEntities(entities: List<Vector3>, playerPos: Vector3, color: Color) {
+        shapeRenderer.color = color
+        for (entity in entities) {
+            val relX = (entity.x - playerPos.x) * 2f
+            val relZ = (entity.z - playerPos.z) * 2f
+
+            // Only show if within range
+            if (abs(relX) < size / 2 && abs(relZ) < size / 2) {
+                shapeRenderer.circle(
+                    x + size / 2 + relX,
+                    y + size / 2 + relZ,
+                    3f
+                )
+            }
+        }
     }
 
     fun dispose() {

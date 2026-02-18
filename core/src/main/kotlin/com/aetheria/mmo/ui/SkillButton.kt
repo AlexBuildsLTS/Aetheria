@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import java.util.Locale
 
 /**
  * Skill/Ability Button Widget
@@ -85,7 +86,7 @@ class SkillButton(
         if (!isReady) {
             font.color = Color.WHITE
             font.data.setScale(1.2f)
-            val cooldownText = String.format("%.1f", currentCooldown)
+            val cooldownText = String.format(Locale.US, "%.1f", currentCooldown)
             font.draw(batch, cooldownText, x + size / 2 - 15f, y + size / 2 + 5f)
             font.data.setScale(1f)
         }

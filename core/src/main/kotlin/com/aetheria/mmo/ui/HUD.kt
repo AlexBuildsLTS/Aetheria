@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.GL20
 import com.aetheria.mmo.components.HealthComponent
 import com.aetheria.mmo.components.StaminaComponent
 import com.aetheria.mmo.components.CombatComponent
@@ -50,8 +51,8 @@ class HUD {
         val combat = playerEntity.getComponent(CombatComponent::class.java)
 
         // Render bars first (behind text)
-        Gdx.gl.glEnable(Gdx.gl20.GL_BLEND)
-        Gdx.gl.glBlendFunc(Gdx.gl20.GL_SRC_ALPHA, Gdx.gl20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
 
         shapeRenderer.projectionMatrix = batch.projectionMatrix
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
@@ -165,72 +166,79 @@ class HUD {
     }
 
     private fun renderAbilityCooldowns(combat: CombatComponent, startX: Float, startY: Float) {
-        val abilities = listOf("Q", "E", "R", "F")
+        val abilityKeys = listOf("Q", "E", "R", "F")
         val boxSize = 60f
         val spacing = 20f
 
-        abilities.forEachIndexed { index, key ->
+        abilityKeys.forEachIndexed { index, key ->
             val x = startX + index * (boxSize + spacing)
             val y = startY
-            val ability = combat.abilities[key]
+            val cooldown = combat.abilityCooldowns[key] ?: 0f
+            val isReady = cooldown <= 0f
 
-            if (ability != null) {
-                val isReady = ability.currentCooldown <= 0f
+            // Background
+            shapeRenderer.color = if (isReady) abilityReadyColor else abilityCooldownColor
+            shapeRenderer.rect(x, y, boxSize, boxSize)
 
-                // Background
-                shapeRenderer.color = if (isReady) abilityReadyColor else abilityCooldownColor
-                shapeRenderer.rect(x, y, boxSize, boxSize)
-
-                // Cooldown overlay (if on cooldown)
-                if (!isReady) {
-                    val cooldownPercent = ability.currentCooldown / ability.cooldown
-                    shapeRenderer.color = Color(0f, 0f, 0f, 0.6f)
-                    shapeRenderer.rect(x, y, boxSize, boxSize * cooldownPercent)
+            // Cooldown overlay (if on cooldown)
+            if (!isReady) {
+                val maxCooldown = when(key) {
+                    "Q" -> 5f
+                    "E" -> 8f
+                    "R" -> 12f
+                    "F" -> 15f
+                    else -> 5f
                 }
-
-                // Border
-                shapeRenderer.end()
-                shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
-                shapeRenderer.color = abilityBorderColor
-                shapeRenderer.rect(x, y, boxSize, boxSize)
-                shapeRenderer.end()
-                shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+                val cooldownPercent = cooldown / maxCooldown
+                shapeRenderer.color = Color(0f, 0f, 0f, 0.6f)
+                shapeRenderer.rect(x, y, boxSize, boxSize * cooldownPercent)
             }
+
+            // Border
+            shapeRenderer.end()
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+            shapeRenderer.color = abilityBorderColor
+            shapeRenderer.rect(x, y, boxSize, boxSize)
+            shapeRenderer.end()
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         }
     }
 
     private fun renderAbilityLabels(batch: SpriteBatch, combat: CombatComponent, startX: Float, startY: Float) {
-        val abilities = listOf("Q", "E", "R", "F")
+        val abilityKeys = listOf("Q", "E", "R", "F")
+        val abilityNames = mapOf(
+            "Q" to "Strike",
+            "E" to "Dash",
+            "R" to "Ultimate",
+            "F" to "Heal"
+        )
         val boxSize = 60f
         val spacing = 20f
 
-        abilities.forEachIndexed { index, key ->
+        abilityKeys.forEachIndexed { index, key ->
             val x = startX + index * (boxSize + spacing)
             val y = startY
-            val ability = combat.abilities[key]
+            val cooldown = combat.abilityCooldowns[key] ?: 0f
+            val isReady = cooldown <= 0f
 
-            if (ability != null) {
-                val isReady = ability.currentCooldown <= 0f
+            // Key binding (large)
+            largeFont.color = Color.WHITE
+            largeFont.draw(batch, key, x + 20f, y + boxSize - 10f)
 
-                // Key binding (large)
-                largeFont.color = Color.WHITE
-                largeFont.draw(batch, key, x + 20f, y + boxSize - 10f)
+            // Ability name (small)
+            font.color = Color.LIGHT_GRAY
+            font.data.setScale(0.7f)
+            font.draw(batch, abilityNames[key] ?: key, x + 5f, y - 5f)
 
-                // Ability name (small)
-                font.color = Color.LIGHT_GRAY
-                font.data.setScale(0.7f)
-                font.draw(batch, ability.name, x + 5f, y - 5f)
-
-                // Cooldown timer (if on cooldown)
-                if (!isReady) {
-                    font.color = Color.WHITE
-                    font.data.setScale(1.2f)
-                    val cooldownText = String.format("%.1f", ability.currentCooldown)
-                    font.draw(batch, cooldownText, x + 15f, y + 35f)
-                }
-
-                font.data.setScale(1f)
+            // Cooldown timer (if on cooldown)
+            if (!isReady) {
+                font.color = Color.WHITE
+                font.data.setScale(1.2f)
+                val cooldownText = String.format("%.1f", cooldown)
+                font.draw(batch, cooldownText, x + 15f, y + 35f)
             }
+
+            font.data.setScale(1f)
         }
     }
 

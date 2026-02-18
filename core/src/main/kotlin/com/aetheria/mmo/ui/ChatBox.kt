@@ -50,8 +50,8 @@ class ChatBox(
         // End batch for shapes
         batch.end()
 
-        Gdx.gl.glEnable(Gdx.gl20.GL_BLEND)
-        Gdx.gl.glBlendFunc(Gdx.gl20.GL_SRC_ALPHA, Gdx.gl20.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
 
         shapeRenderer.projectionMatrix = batch.projectionMatrix
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
