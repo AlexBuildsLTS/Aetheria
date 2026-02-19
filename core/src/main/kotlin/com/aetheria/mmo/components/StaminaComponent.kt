@@ -1,12 +1,13 @@
 package com.aetheria.mmo.components
 
 import com.badlogic.ashley.core.Component
+import com.badlogic.gdx.utils.Pool
 
 /**
  * Stamina Component
  * Tracks entity stamina for abilities, sprinting, dodging
  */
-class StaminaComponent : Component {
+class StaminaComponent : Component, Pool.Poolable {
     var current: Float = 100f
     var max: Float = 100f
     var regen: Float = 10f // Stamina per second
@@ -32,4 +33,11 @@ class StaminaComponent : Component {
     }
 
     fun getStaminaPercent(): Float = if (max > 0f) current / max else 0f
+
+    override fun reset() {
+        current = 100f
+        max = 100f
+        regen = 10f
+        isExhausted = false
+    }
 }

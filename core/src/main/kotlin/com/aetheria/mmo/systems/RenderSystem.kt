@@ -4,73 +4,91 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.core.Family
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.graphics.PerspectiveCamera
-import com.badlogic.gdx.graphics.g3d.ModelBatch
-import com.badlogic.gdx.graphics.g3d.Environment
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.utils.DefaultShaderProvider
-import com.badlogic.gdx.graphics.g3d.shaders.DefaultShader
-import com.badlogic.gdx.math.Matrix4
 import com.aetheria.mmo.components.ModelComponent
 import com.aetheria.mmo.components.TransformComponent
 import com.aetheria.mmo.components.AnimationComponent
+import net.mgsx.gltf.scene3d.scene.SceneManager
+import net.mgsx.gltf.scene3d.scene.Scene
 
 /**
- * AAA+ Tier Render System
- * Renders all 3D models with proper transform synchronization.
- * Uses the camera from CameraSystem for consistent view.
+ * AAA+ Tier Render System using gdx-gltf SceneManager.
+ * Provides PBR lighting, shadows, and efficient rendering.
  */
 class RenderSystem(
-    private val batch: ModelBatch,
+    val sceneManager: SceneManager,
     val camera: PerspectiveCamera
 ) : IteratingSystem(
     Family.all(ModelComponent::class.java, TransformComponent::class.java).get()
 ) {
-    val environment: Environment = Environment()
-    private val tempMatrix = Matrix4()
+    private val entityScenes = mutableMapOf<Entity, Scene>()
+    private val entityLights = mutableMapOf<Entity, net.mgsx.gltf.scene3d.lights.PointLightEx>()
 
     init {
-        // Setup PBR-style lighting for realistic rendering
-        environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.35f, 1f))
-
-        // Main directional light (sun)
-        environment.add(DirectionalLight().set(0.9f, 0.9f, 0.85f, -0.5f, -0.8f, -0.3f))
-
-        // Fill light (softer, from opposite direction)
-        environment.add(DirectionalLight().set(0.3f, 0.3f, 0.4f, 0.5f, -0.2f, 0.5f))
+        // Setup PBR lighting
+        val environment = sceneManager.environment
+        environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.45f, 1f))
+        environment.add(DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f))
+        
+        sceneManager.setCamera(camera)
     }
 
     override fun update(deltaTime: Float) {
-        // Begin rendering with the camera from CameraSystem
-        batch.begin(camera)
-        super.update(deltaTime) // Calls processEntity for each entity
-        batch.end()
+        super.update(deltaTime)
+        sceneManager.update(deltaTime)
+        sceneManager.render()
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val modelComp = entity.getComponent(ModelComponent::class.java)
         val transformComp = entity.getComponent(TransformComponent::class.java)
         val animComp = entity.getComponent(AnimationComponent::class.java)
+        val lightComp = entity.getComponent(com.aetheria.mmo.components.LightComponent::class.java)
 
-        // Skip hidden entities
+        // Get or create Scene for this entity
+        var scene = entityScenes[entity]
+        if (scene == null) {
+            scene = Scene(modelComp.modelInstance)
+            sceneManager.addScene(scene)
+            entityScenes[entity] = scene
+        }
+
+        // Sync transform
+        scene.modelInstance.transform.set(
+            transformComp.position,
+            transformComp.rotation,
+            transformComp.scale
+        )
+        
+        // Link animation controller if it exists
+        if (animComp != null && animComp.controller == null) {
+            animComp.controller = scene.animationController
+        }
+
+        // Handle Dynamic Lighting
+        if (lightComp != null) {
+            var pointLight = entityLights[entity]
+            if (pointLight == null) {
+                pointLight = net.mgsx.gltf.scene3d.lights.PointLightEx()
+                sceneManager.environment.add(pointLight)
+                entityLights[entity] = pointLight
+            }
+            pointLight.color.set(lightComp.color)
+            pointLight.intensity = lightComp.intensity
+            pointLight.range = lightComp.radius
+            pointLight.position.set(transformComp.position)
+        }
+        
+        // Visibility
         if (transformComp.isHidden || !modelComp.isVisible) {
-            return
+            sceneManager.removeScene(scene)
+            entityScenes.remove(entity)
+            
+            entityLights[entity]?.let {
+                sceneManager.environment.remove(it)
+                entityLights.remove(entity)
+            }
         }
-
-        // Update animation controller
-        if (animComp != null) {
-            animComp.controller.update(deltaTime)
-        }
-
-        // Sync ModelInstance transform with TransformComponent
-        tempMatrix.idt()
-        tempMatrix.translate(transformComp.position)
-        tempMatrix.rotate(transformComp.rotation)
-        tempMatrix.scale(transformComp.scale.x, transformComp.scale.y, transformComp.scale.z)
-
-        modelComp.modelInstance.transform.set(tempMatrix)
-
-        // Render the model
-        batch.render(modelComp.modelInstance, environment)
     }
 }

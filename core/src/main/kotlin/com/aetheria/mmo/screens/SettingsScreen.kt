@@ -28,7 +28,7 @@ class SettingsScreen : ScreenAdapter() {
         Gdx.input.inputProcessor = stage
 
         // Load skin
-        skin = Skin(Gdx.files.internal("ui/uiskin.json"))
+        skin = Skin(Gdx.files.internal("ui/skin/metalui.json"))
 
         // Create settings menu
         settingsMenu = SettingsMenu(skin)

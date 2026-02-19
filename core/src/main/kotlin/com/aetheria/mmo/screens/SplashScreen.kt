@@ -24,17 +24,17 @@ class SplashScreen(private val game: AetheriaGame) : ScreenAdapter() {
 
         // 2. Update the camera
         camera.update()
-        game.batch.projectionMatrix = camera.combined
+        game.batch?.projectionMatrix = camera.combined
 
         // 3. Begin drawing
-        game.batch.begin()
+        game.batch?.begin()
 
         // 4. Draw something! (e.g., text, a logo from ResourceManager)
         // If you haven't loaded fonts, this will also fail. For now, a simple clear is enough.
         // Example: game.font.draw(game.batch, "Loading...", 100f, 100f)
 
         // 5. End drawing
-        game.batch.end()
+        game.batch?.end()
 
         // --- END OF FIX ---
 

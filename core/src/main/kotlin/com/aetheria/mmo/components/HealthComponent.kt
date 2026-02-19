@@ -1,12 +1,13 @@
 package com.aetheria.mmo.components
 
 import com.badlogic.ashley.core.Component
+import com.badlogic.gdx.utils.Pool
 
 /**
  * Health Component
  * Tracks entity health, max health, and regeneration
  */
-class HealthComponent : Component {
+class HealthComponent : Component, Pool.Poolable {
     var current: Float = 100f
     var max: Float = 100f
     var regen: Float = 1f // HP per second
@@ -27,4 +28,11 @@ class HealthComponent : Component {
     }
 
     fun getHealthPercent(): Float = if (max > 0f) current / max else 0f
+
+    override fun reset() {
+        current = 100f
+        max = 100f
+        regen = 1f
+        isDead = false
+    }
 }

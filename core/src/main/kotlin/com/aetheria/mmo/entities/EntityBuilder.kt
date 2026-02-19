@@ -17,8 +17,9 @@ object EntityBuilder {
         val entity = Entity()
 
         // 1. Visuals
-        val model = ResourceManager.getModel(classType)
-        val instance = ModelInstance(model)
+        val sceneAsset = ResourceManager.getSceneAsset("char_${classType.lowercase()}_base.glb")
+        val scene = sceneAsset.scene
+        val instance = ModelInstance(scene.model)
 
         val modelComp = ModelComponent()
         modelComp.modelInstance = instance // FIXED: matches ModelComponent definition
@@ -27,7 +28,7 @@ object EntityBuilder {
         // 2. Animation
         val animComp = AnimationComponent()
         animComp.controller = AnimationController(instance)
-        animComp.controller.setAnimation("Idle", -1)
+        animComp.controller?.setAnimation("Idle", -1)
         animComp.currentAnimation = "Idle"
         entity.add(animComp)
 

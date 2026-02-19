@@ -5,11 +5,10 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.utils.Pool
 
 class ModelComponent : Component, Pool.Poolable {
-    lateinit var modelInstance: ModelInstance // This matches your old code
+    lateinit var modelInstance: ModelInstance
     var isVisible = true
 
     override fun reset() {
         isVisible = true
-        // modelInstance is usually not nulled out, but re-assigned
     }
 }

@@ -26,28 +26,33 @@ class InputHandlerSystem : IteratingSystem(
 
         // Apply input to movement component
         moveEvt?.let {
-            it.setMoveDirection(input.moveInput.x, 0f, input.moveInput.y)
+            // Map 2D input to 3D world direction
+            // moveInput.x -> X axis (Left/Right)
+            // moveInput.y -> Z axis (Forward/Backward)
+            // In LibGDX, -Z is forward, so we negate moveInput.y
+            it.setMoveDirection(input.moveInput.x, 0f, -input.moveInput.y)
             it.isSprinting = input.isSprinting
         }
 
         // Handle combat actions
-        if (input.isPrimaryAttack && combat != null) {
-            if (combat.canUseAbility("Q")) {
-                combat.useAbility("Q")
-                // Fire event or trigger attack
-            }
+        if (combat != null) {
+            if (input.abilityQ && combat.canUseAbility("Q")) combat.useAbility("Q")
+            if (input.abilityE && combat.canUseAbility("E")) combat.useAbility("E")
+            if (input.abilityR && combat.canUseAbility("R")) combat.useAbility("R")
+            if (input.abilityF && combat.canUseAbility("F")) combat.useAbility("F")
         }
     }
 
     private fun updateMovementInput(input: InputComponent) {
         input.moveInput.setZero()
 
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) input.moveInput.y = 1f
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) input.moveInput.y = -1f
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) input.moveInput.x = -1f
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) input.moveInput.x = 1f
+        // Keyboard WASD
+        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) input.moveInput.y = 1f
+        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) input.moveInput.y = -1f
+        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) input.moveInput.x = -1f
+        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) input.moveInput.x = 1f
 
-        input.isSprinting = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
+        input.isSprinting = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)
         input.isJumping = Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
         input.isCrouching = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)
     }

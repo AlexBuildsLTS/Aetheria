@@ -16,34 +16,37 @@ dependencies {
     implementation(libs.gdx.backend.lwjgl3)
     implementation(libs.ashley)
     implementation(libs.gdx.core)
+    implementation(libs.gdx.freetype)
+
 
     // Ktor Server Dependencies
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.netty)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.serialization.json)
-    implementation(libs.ktor.server.call.logging)
-    implementation(libs.ktor.server.call.id)
-    implementation(libs.ktor.server.metrics)
-    implementation(libs.ktor.server.partial.content)
-    implementation(libs.ktor.server.forwarded.header)
-    implementation(libs.ktor.server.conditional.headers)
+    implementation(libs.ktorServerCore)
+    implementation(libs.ktorServerNetty)
+    implementation(libs.ktorServerContentNegotiation)
+    implementation(libs.ktorSerializationJson)
+    implementation(libs.ktorServerCallLogging)
+    implementation(libs.ktorServerCallId)
+    implementation(libs.ktorServerMetrics)
+    implementation(libs.ktorServerPartialContent)
+    implementation(libs.ktorServerForwardedHeader)
+    implementation(libs.ktorServerConditionalHeaders)
 
     // Ktor Client Dependencies
-    implementation(libs.ktor.client.logging)
-    implementation(libs.ktor.client.encoding)
+    implementation(libs.ktorClientLogging)
+    implementation(libs.ktorClientEncoding)
 
     // Database
     implementation(libs.postgresql)
-    implementation(libs.h2.database)
+    implementation(libs.h2Database)
 
     // Monitoring
-    implementation(libs.cohort.ktor)
+    implementation(libs.cohortKtor)
 
     // LibGDX Natives
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:${libs.versions.gdx.get()}:natives-desktop")
     runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:${libs.versions.gdx.get()}:natives-desktop")
     runtimeOnly("com.badlogicgames.gdx:gdx-box2d-platform:${libs.versions.gdx.get()}:natives-desktop")
+    runtimeOnly("com.badlogicgames.gdx:gdx-bullet-platform:${libs.versions.gdx.get()}:natives-desktop")
 }
 
 sourceSets {
@@ -61,12 +64,14 @@ tasks.register<JavaExec>("run") {
     val osName = System.getProperty("os.name").lowercase()
     jvmArgs = if (osName.contains("mac")) {
         listOf(
+            "-noverify",  // Fix LWJGL bytecode verification issue
             "--add-opens", "java.base/java.lang=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
             "-XstartOnFirstThread"  // Required for macOS only
         )
     } else {
         listOf(
+            "-noverify",  // Fix LWJGL bytecode verification issue
             "--add-opens", "java.base/java.lang=ALL-UNNAMED",
             "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED"
         )
@@ -93,4 +98,3 @@ tasks.withType<Jar> {
     })
     from("${rootProject.projectDir}/assets")
 }
-

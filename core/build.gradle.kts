@@ -18,10 +18,9 @@ dependencies {
     api(libs.gdx.bullet)
     api(libs.ashley)
     api(libs.gdx.freetype)
-    api(libs.gdx.gltf)
-    api(libs.gdx.platform)
-    api(libs.gdx.bullet.platform)
-    api(libs.gdx.backend.lwjgl3)
+
+    // GLTF support
+    implementation(libs.gdx.gltf)
 
 
 
@@ -29,14 +28,12 @@ dependencies {
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines)
 
-
-
     // Networking (Supabase & Ktor)
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.logging)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.json)
+    implementation(libs.ktorClientCore)
+    implementation(libs.ktorClientCio)
+    implementation(libs.ktorClientLogging)
+    implementation(libs.ktorClientContentNegotiation)
+    implementation(libs.ktorSerializationJson)
     implementation(libs.supabase.gotrue)
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.realtime)

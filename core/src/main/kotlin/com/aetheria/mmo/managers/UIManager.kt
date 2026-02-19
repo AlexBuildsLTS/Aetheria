@@ -51,7 +51,7 @@ object UIManager : Disposable {
         hudStage = Stage(ScreenViewport(), batch)
 
         // Load skin
-        skin = Skin(Gdx.files.internal("ui/uiskin.json"))
+        skin = Skin(Gdx.files.internal("ui/skin/metalui.json"))
 
         // Create font
         font = BitmapFont()

@@ -22,7 +22,7 @@ import com.aetheria.mmo.utils.StringHelpers
 class HUDOverlay : Disposable {
 
     private val stage: Stage = Stage(ScreenViewport())
-    private val skin: Skin = Skin(Gdx.files.internal("ui/uiskin.json"))
+    private val skin: Skin = Skin(Gdx.files.internal("ui/skin/metalui.json"))
     private val shapeRenderer = ShapeRenderer()
 
     // HUD Elements

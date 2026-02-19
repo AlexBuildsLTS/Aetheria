@@ -50,7 +50,10 @@ object EnemyFactory {
                 isNetworked = true
             })
 
-            add(engine.createComponent(ModelComponent::class.java))
+            add(engine.createComponent(ModelComponent::class.java).apply {
+                val sceneAsset = com.aetheria.mmo.managers.ResourceManager.getSceneAsset("mob_rat_robot.glb")
+                modelInstance = com.badlogic.gdx.graphics.g3d.ModelInstance(sceneAsset.scene.model)
+            })
             add(engine.createComponent(AnimationComponent::class.java))
             add(engine.createComponent(StateComponent::class.java))
 
@@ -109,7 +112,10 @@ object EnemyFactory {
                 isNetworked = true
             })
 
-            add(engine.createComponent(ModelComponent::class.java))
+            add(engine.createComponent(ModelComponent::class.java).apply {
+                val sceneAsset = com.aetheria.mmo.managers.ResourceManager.getSceneAsset("mob_boar_armored.glb")
+                modelInstance = com.badlogic.gdx.graphics.g3d.ModelInstance(sceneAsset.scene.model)
+            })
             add(engine.createComponent(AnimationComponent::class.java))
             add(engine.createComponent(StateComponent::class.java))
 
@@ -158,7 +164,10 @@ object EnemyFactory {
                 isNetworked = true
             })
 
-            add(engine.createComponent(ModelComponent::class.java))
+            add(engine.createComponent(ModelComponent::class.java).apply {
+                val sceneAsset = com.aetheria.mmo.managers.ResourceManager.getSceneAsset("mob_neon_stalker.glb")
+                modelInstance = com.badlogic.gdx.graphics.g3d.ModelInstance(sceneAsset.scene.model)
+            })
             add(engine.createComponent(AnimationComponent::class.java))
             add(engine.createComponent(StateComponent::class.java))
 

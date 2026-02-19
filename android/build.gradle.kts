@@ -26,6 +26,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/**",
+                "**/*.dylib",
+                "**/*.so",
+                "**/*.dll"
+            )
+        }
+    }
 }
 
 kotlin {
@@ -33,7 +44,13 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":core")) {
+        // Exclude gdx-gltf from Android to prevent duplicate class conflicts
+        exclude(group = "com.github.mgsx-dev", module = "gdx-gltf")
+        // Exclude LWJGL (desktop-only) from Android
+        exclude(group = "org.lwjgl")
+        exclude(group = "com.badlogicgames.gdx", module = "gdx-backend-lwjgl3")
+    }
     implementation(libs.gdx.backend.android)
     implementation(libs.androidx.core.splashscreen)
     implementation("com.google.android.material:material:1.11.0")
@@ -63,10 +80,6 @@ dependencies {
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-arm64-v8a")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-x86")
     implementation("com.badlogicgames.gdx:gdx-freetype-platform:1.13.1:natives-x86_64")
-    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-armeabi-v7a")
-    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-arm64-v8a")
-    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-x86")
-    implementation("com.badlogicgames.gdx:gdx-backend-android:1.13.1:natives-x86_64")
 
 
 }

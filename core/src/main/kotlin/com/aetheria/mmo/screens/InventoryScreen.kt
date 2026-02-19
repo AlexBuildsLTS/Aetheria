@@ -41,7 +41,7 @@ class InventoryScreen : ScreenAdapter() {
         stage = Stage(ScreenViewport())
         Gdx.input.inputProcessor = stage
 
-        skin = Skin(Gdx.files.internal("ui/uiskin.json"))
+        skin = Skin(Gdx.files.internal("ui/skin/metalui.json"))
         tooltip = Tooltip(skin)
 
         buildUI()
