@@ -14,6 +14,8 @@ import com.aetheria.mmo.components.*
 class InputHandlerSystem : IteratingSystem(
     Family.all(InputComponent::class.java, PlayerComponent::class.java).get()
 ) {
+    var joystickProvider: com.aetheria.mmo.screens.GameHUD? = null
+
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val input = entity.getComponent(InputComponent::class.java)
         val moveEvt = entity.getComponent(MoveEvtComponent::class.java)
@@ -44,22 +46,62 @@ class InputHandlerSystem : IteratingSystem(
     }
 
     private fun updateMovementInput(input: InputComponent) {
-        input.moveInput.setZero()
+        val keyboardX = getKeyboardX()
+        val keyboardY = getKeyboardY()
+        
+        var joystickX = 0f
+        var joystickY = 0f
+        
+        joystickProvider?.let { hud ->
+            val stick = hud.getMovementInput()
+            joystickX = stick.x
+            joystickY = stick.y
+        }
 
-        // Keyboard WASD
-        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) input.moveInput.y = 1f
-        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) input.moveInput.y = -1f
-        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) input.moveInput.x = -1f
-        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) input.moveInput.x = 1f
+        // Blend: Take the one with higher magnitude or just add and clamp
+        // Adding and clamping to 1.0 allows both to work
+        input.moveInput.set(keyboardX + joystickX, keyboardY + joystickY)
+        
+        // Normalize so diagonal movement isn't faster
+        if (input.moveInput.len() > 1f) {
+            input.moveInput.nor()
+        }
 
         input.isSprinting = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)
         input.isJumping = Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
         input.isCrouching = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)
     }
 
+    private fun getKeyboardX(): Float {
+        var x = 0f
+        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) x -= 1f
+        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) x += 1f
+        return x
+    }
+
+    private fun getKeyboardY(): Float {
+        var y = 0f
+        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) y += 1f
+        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) y -= 1f
+        return y
+    }
+
     private fun updateCombatInput(input: InputComponent) {
         input.isPrimaryAttack = Gdx.input.isButtonPressed(Input.Buttons.LEFT)
         input.isSecondaryAttack = Gdx.input.isButtonPressed(Input.Buttons.RIGHT)
+        
+        // Joystick Aiming
+        joystickProvider?.let { hud ->
+            val aimInput = hud.getAimInput()
+            if (aimInput.len() > 0.1f) {
+                input.aimX = aimInput.x
+                input.aimY = aimInput.y
+            } else {
+                input.aimX = 0f
+                input.aimY = 0f
+            }
+        }
+
         input.isBlocking = Gdx.input.isKeyPressed(Input.Keys.F)
         input.isDodging = Gdx.input.isKeyJustPressed(Input.Keys.ALT_LEFT)
     }

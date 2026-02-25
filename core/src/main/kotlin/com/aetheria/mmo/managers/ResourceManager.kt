@@ -3,111 +3,103 @@ package com.aetheria.mmo.managers
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.VertexAttributes
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.utils.Disposable
 import net.mgsx.gltf.loaders.glb.GLBAssetLoader
 import net.mgsx.gltf.loaders.gltf.GLTFAssetLoader
 import net.mgsx.gltf.scene3d.scene.SceneAsset
 
 /**
- * AAA+ Tier Resource Manager
- * Handles loading and caching of all game assets using gdx-gltf for PBR 3D models.
+ * AAA Resource Manager
+ * Enforces strict model loading and robust fallbacks for missing assets.
  */
 object ResourceManager : Disposable {
     val assetManager = AssetManager()
+    private val modelBuilder = ModelBuilder()
+    private var missingTexture: Texture? = null
 
-    // Character model paths
-    private val characterModels = listOf(
-        "models/characters/char_vanguard_base.glb",
-        "models/characters/char_weaver_base.glb",
-        "models/characters/char_strider_base.glb",
-        "models/characters/char_medic_base.glb"
-    )
+    val CHAR_VANGUARD = "models/characters/char_vanguard_base.glb"
+    val CHAR_MEDIC = "models/characters/char_medic_base.glb"
+    val CHAR_STRIDER = "models/characters/char_strider_base.glb"
+    val CHAR_WEAVER = "models/characters/char_weaver_base.glb"
 
-    // Environment model paths
-    private val environmentModels = listOf(
-        "models/environment/env_ground_tile_hex.glb",
-        "models/environment/env_building_ruined.glb",
-        "models/environment/env_data_fall.glb",
-        "models/environment/env_firewall.glb",
-        "models/environment/env_rock_floating.glb",
-        "models/environment/env_tree_neon.glb"
-    )
-
-    // Enemy model paths
-    private val enemyModels = listOf(
-        "models/enemies/boss_leviathan.glb",
-        "models/enemies/boss_null_pointer.glb",
-        "models/enemies/mob_boar_armored.glb",
-        "models/enemies/mob_neon_stalker.glb",
-        "models/enemies/mob_rat_robot.glb",
-        "models/enemies/mob_spider_phase.glb"
+    private val VALID_MODELS = setOf(
+        CHAR_VANGUARD,
+        CHAR_MEDIC,
+        CHAR_STRIDER,
+        CHAR_WEAVER
     )
 
     init {
-        // Register GLTF/GLB loaders for 3D model support
         val resolver = InternalFileHandleResolver()
         assetManager.setLoader(SceneAsset::class.java, ".gltf", GLTFAssetLoader(resolver))
         assetManager.setLoader(SceneAsset::class.java, ".glb", GLBAssetLoader(resolver))
-
-        Gdx.app.log("ResourceManager", "GLTF loaders registered successfully")
+        
+        createMissingTexture()
     }
 
-    /**
-     * Loads all game assets asynchronously.
-     */
+    private fun createMissingTexture() {
+        val pixmap = Pixmap(32, 32, Pixmap.Format.RGBA8888)
+        pixmap.setColor(Color.MAGENTA)
+        pixmap.fill()
+        pixmap.setColor(Color.BLACK)
+        pixmap.fillRectangle(0, 0, 16, 16)
+        pixmap.fillRectangle(16, 16, 16, 16)
+        missingTexture = Texture(pixmap)
+        pixmap.dispose()
+    }
+
     fun loadAll() {
-        Gdx.app.log("ResourceManager", "Starting asset loading...")
-
-        // Load characters
-        for (modelPath in characterModels) {
-            if (Gdx.files.internal(modelPath).exists()) {
-                assetManager.load(modelPath, SceneAsset::class.java)
-                Gdx.app.log("ResourceManager", "Queued: $modelPath")
+        VALID_MODELS.forEach { path ->
+            try {
+                // Ensure directory exists for safety
+                if (Gdx.files.internal(path).exists()) {
+                    assetManager.load(path, SceneAsset::class.java)
+                }
+            } catch (e: Exception) {
+                Gdx.app.error("ResourceManager", "Failed to load $path")
             }
         }
+    }
 
-        // Load environment
-        for (modelPath in environmentModels) {
-            if (Gdx.files.internal(modelPath).exists()) {
-                assetManager.load(modelPath, SceneAsset::class.java)
-                Gdx.app.log("ResourceManager", "Queued: $modelPath")
-            }
+    fun getSceneAsset(path: String): SceneAsset? {
+        if (!VALID_MODELS.contains(path)) return null
+        if (assetManager.isLoaded(path)) {
+            return assetManager.get(path, SceneAsset::class.java)
         }
+        return null
+    }
 
-        // Load enemies
-        for (modelPath in enemyModels) {
-            if (Gdx.files.internal(modelPath).exists()) {
-                assetManager.load(modelPath, SceneAsset::class.java)
-                Gdx.app.log("ResourceManager", "Queued: $modelPath")
-            }
+    fun createPlaceholderModel(color: Color? = null, width: Float = 1f, height: Float = 2f, type: String = "box"): Model {
+        val material = if (color != null) {
+            Material(ColorAttribute.createDiffuse(color))
+        } else {
+            Material(TextureAttribute.createDiffuse(missingTexture))
+        }
+        
+        val attributes = (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal or VertexAttributes.Usage.TextureCoordinates).toLong()
+        
+        return when(type) {
+            "box" -> modelBuilder.createBox(width, height, width, material, attributes)
+            "sphere" -> modelBuilder.createSphere(width, width, width, 16, 16, material, attributes)
+            else -> modelBuilder.createCapsule(width, height, 16, material, attributes)
         }
     }
 
     fun update(): Boolean = assetManager.update()
-
     fun getProgress(): Float = assetManager.progress
-
     fun finishLoading() = assetManager.finishLoading()
-
-    /**
-     * Retrieves a loaded SceneAsset by filename.
-     */
-    fun getSceneAsset(name: String): SceneAsset {
-        val path = when {
-            name.startsWith("char_") -> "models/characters/$name"
-            name.startsWith("mob_") || name.startsWith("boss_") -> "models/enemies/$name"
-            else -> "models/environment/$name"
-        }
-        if (!assetManager.isLoaded(path, SceneAsset::class.java)) {
-            Gdx.app.log("ResourceManager", "Warning: Asset $path not preloaded. Loading synchronously.")
-            assetManager.load(path, SceneAsset::class.java)
-            assetManager.finishLoading()
-        }
-        return assetManager.get(path, SceneAsset::class.java)
-    }
 
     override fun dispose() {
         assetManager.dispose()
-        Gdx.app.log("ResourceManager", "Resources disposed")
+        missingTexture?.dispose()
     }
 }

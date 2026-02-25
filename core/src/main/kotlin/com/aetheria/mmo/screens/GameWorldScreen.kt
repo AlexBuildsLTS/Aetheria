@@ -1,148 +1,209 @@
 package com.aetheria.mmo.screens
 
 import com.aetheria.mmo.AetheriaGame
+import com.aetheria.mmo.components.*
+import com.aetheria.mmo.entities.EntityBuilder
+import com.aetheria.mmo.events.EventQueue
+import com.aetheria.mmo.managers.NetworkManager
+import com.aetheria.mmo.managers.ResourceManager
+import com.aetheria.mmo.systems.*
+import com.badlogic.ashley.core.Entity
+import com.badlogic.ashley.core.PooledEngine
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
-import com.badlogic.gdx.InputAdapter
+import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.*
 import com.badlogic.gdx.graphics.g3d.*
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
-import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.viewport.FitViewport
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
+import net.mgsx.gltf.scene3d.scene.SceneManager
+import net.mgsx.gltf.scene3d.scene.SceneAsset
+import net.mgsx.gltf.scene3d.scene.Scene
+import net.mgsx.gltf.scene3d.utils.IBLBuilder
+import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute
 
 class GameWorldScreen(private val game: AetheriaGame, private val archetypeId: String) : ScreenAdapter() {
 
-    // --- 3D ENGINE ---
-    private lateinit var modelBatch: ModelBatch
-    private lateinit var environment: Environment
+    private lateinit var engine: PooledEngine
+    private var playerEntity: Entity? = null
+    private lateinit var sceneManager: SceneManager
     private lateinit var camera: PerspectiveCamera
-    private lateinit var camController: ThirdPersonController
+    private val viewport3D = FitViewport(1920f, 1080f)
 
-    // --- WORLD OBJECTS ---
-    private val instances = Array<ModelInstance>()
-    private val assets = Array<Model>() // Keep track to dispose later
-    private lateinit var playerInstance: ModelInstance
-
-    // Player State
-    private val playerPosition = Vector3(0f, 0f, 0f)
-    private val playerSpeed = 10f
+    private val disposableModels = Array<Model>()
+    private lateinit var hud: GameHUD
+    private lateinit var multiplexer: InputMultiplexer
+    
+    // Lighting
+    private lateinit var light: DirectionalLightEx
+    private lateinit var diffuseCubemap: Cubemap
+    private lateinit var environmentCubemap: Cubemap
+    private lateinit var specularCubemap: Cubemap
 
     override fun show() {
-        // 1. Setup Environment (Lighting)
-        environment = Environment()
-        environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f))
-        environment.add(DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f))
+        Gdx.app.log("AETHERIA_DEBUG", "3D ENGINE INITIALIZED SUCCESSFULLY")
 
-        // 2. Setup Camera
-        modelBatch = ModelBatch()
+        // 1. Setup Camera
         camera = PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-        camera.near = 1f
-        camera.far = 300f
+        camera.position.set(10f, 10f, 10f)
+        camera.lookAt(0f, 0f, 0f)
+        camera.near = 0.1f
+        camera.far = 1000f
         camera.update()
+        viewport3D.camera = camera
 
-        // 3. Build World
-        buildFloor()
+        // 2. Setup SceneManager
+        sceneManager = SceneManager()
+        sceneManager.setCamera(camera)
+
+        // 3. Setup AAA Lighting
+        setupLighting()
+
+        // 4. Setup HUD
+        hud = GameHUD()
+        multiplexer = InputMultiplexer()
+        multiplexer.addProcessor(hud.stage)
+        Gdx.input.inputProcessor = multiplexer
+
+        // 5. Setup ECS
+        setupECS()
+        
+        // 6. Build Environment (Neon Trees + Floor)
+        buildEnvironment()
+        
+        // 7. Spawn Player
         spawnPlayer()
-
-        // 4. Setup Controls
-        camController = ThirdPersonController()
-        Gdx.input.inputProcessor = camController
-
-        Gdx.app.log("GameWorld", "Welcome to Aetheria. Class: $archetypeId")
     }
 
-    private fun buildFloor() {
+    private fun setupLighting() {
+        light = DirectionalLightEx()
+        light.direction.set(-0.5f, -0.8f, -0.2f).nor()
+        light.color.set(Color.CYAN)
+        light.intensity = 2f
+        sceneManager.environment.add(light)
+
+        try {
+            val iblBuilder = IBLBuilder.createOutdoor(light)
+            diffuseCubemap = iblBuilder.buildIrradianceMap(256)
+            specularCubemap = iblBuilder.buildRadianceMap(10)
+            environmentCubemap = iblBuilder.buildEnvMap(1024)
+
+            sceneManager.setAmbientLight(0.2f)
+            sceneManager.environment.set(PBRCubemapAttribute.createSpecularEnv(specularCubemap))
+            sceneManager.environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuseCubemap))
+            
+            iblBuilder.dispose()
+        } catch (e: Exception) {
+            sceneManager.setAmbientLight(0.5f)
+        }
+    }
+
+    private fun setupECS() {
+        engine = PooledEngine()
+        val inputSystem = InputHandlerSystem()
+        inputSystem.joystickProvider = hud
+        engine.addSystem(inputSystem)
+        
+        engine.addSystem(MovementSystem(camera))
+        engine.addSystem(CombatSystem(camera))
+        engine.addSystem(HealthSystem())
+        engine.addSystem(CameraSystem(camera))
+        engine.addSystem(RenderSystem(sceneManager, camera))
+    }
+
+    private fun buildEnvironment() {
         val mb = ModelBuilder()
-        // Create a large gray floor
-        val floorModel = mb.createBox(100f, 1f, 100f,
-            Material(ColorAttribute.createDiffuse(Color.DARK_GRAY)),
-            (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong()
-        )
-        assets.add(floorModel)
-        instances.add(ModelInstance(floorModel, 0f, -1f, 0f))
+        val material = Material(ColorAttribute.createDiffuse(Color(0.05f, 0.05f, 0.1f, 1f)))
+        val attributes = (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong()
+        
+        // Floor
+        val floorModel = mb.createBox(100f, 1f, 100f, material, attributes)
+        disposableModels.add(floorModel)
+        
+        val floorEntity = engine.createEntity()
+        floorEntity.add(TransformComponent().apply { position.set(0f, -0.5f, 0f) })
+        floorEntity.add(ModelComponent().apply { 
+            modelInstance = ModelInstance(floorModel) 
+        })
+        engine.addEntity(floorEntity)
+
+        // Neon Trees
+        val treeAsset = ResourceManager.getSceneAsset("models/environment/env_tree_neon.glb")
+        if (treeAsset != null) {
+            for (i in 0 until 10) {
+                val x = (Math.random() * 80 - 40).toFloat()
+                val z = (Math.random() * 80 - 40).toFloat()
+                
+                val treeEntity = engine.createEntity()
+                treeEntity.add(TransformComponent().apply { 
+                    position.set(x, 0f, z) 
+                    scale.set(2f, 2f, 2f)
+                })
+                treeEntity.add(ModelComponent().apply { 
+                    modelInstance = ModelInstance(treeAsset.scene.model) 
+                })
+                engine.addEntity(treeEntity)
+            }
+        }
     }
 
     private fun spawnPlayer() {
-        val mb = ModelBuilder()
-        val material = Material()
+        playerEntity = EntityBuilder.spawnPlayer(engine, archetypeId)
+        
+        // Link player to HUD for skill events
+        hud.playerEntity = playerEntity
 
-        // Set Color based on Class ID
-        when (archetypeId) {
-            "chrono" -> material.set(ColorAttribute.createDiffuse(Color.GOLD))
-            "nano" -> material.set(ColorAttribute.createDiffuse(Color.LIME))
-            "void" -> material.set(ColorAttribute.createDiffuse(Color.PURPLE))
-            "aether" -> material.set(ColorAttribute.createDiffuse(Color.CYAN))
-            else -> material.set(ColorAttribute.createDiffuse(Color.WHITE))
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
+            val profile = NetworkManager.fetchProfile()
+            if (profile != null && playerEntity != null) {
+                Gdx.app.postRunnable {
+                    NetworkManager.applyStatsToEntity(playerEntity!!, profile.stats)
+                }
+            }
         }
-
-        // Create Player Capsule
-        val playerModel = mb.createCapsule(1f, 4f, 16, material,
-            (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong())
-
-        assets.add(playerModel)
-        playerInstance = ModelInstance(playerModel, 0f, 2f, 0f)
-        instances.add(playerInstance)
     }
 
     override fun render(delta: Float) {
-        // 1. Process Input (Movement)
-        camController.update(delta)
+        EventQueue.process()
+        engine.update(delta)
 
-        // 2. Clear Screen
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+        playerEntity?.let { player ->
+            val health = player.getComponent(HealthComponent::class.java)
+            val stamina = player.getComponent(StaminaComponent::class.java)
+            if (health != null && stamina != null) {
+                hud.updatePlayerStats(health.current, health.max, stamina.current, stamina.max)
+            }
+        }
+
+        viewport3D.apply()
+        Gdx.gl.glClearColor(0f, 0f, 0.05f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
-
-        // 3. Render
-        modelBatch.begin(camera)
-        modelBatch.render(instances, environment)
-        modelBatch.end()
+        
+        sceneManager.update(delta)
+        sceneManager.render()
+        
+        hud.render(delta)
     }
 
     override fun resize(width: Int, height: Int) {
-        camera.viewportWidth = width.toFloat()
-        camera.viewportHeight = height.toFloat()
-        camera.update()
+        viewport3D.update(width, height, true)
+        sceneManager.updateViewport(width.toFloat(), height.toFloat())
+        hud.resize(width, height)
     }
 
     override fun dispose() {
-        modelBatch.dispose()
-        assets.forEach { it.dispose() }
-    }
-
-    // --- INNER CLASS: INPUT CONTROLLER ---
-    inner class ThirdPersonController : InputAdapter() {
-        private val temp = Vector3()
-
-        fun update(delta: Float) {
-            var moved = false
-            // WASD Movement
-            if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-                playerPosition.z -= playerSpeed * delta
-                moved = true
-            }
-            if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-                playerPosition.z += playerSpeed * delta
-                moved = true
-            }
-            if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-                playerPosition.x -= playerSpeed * delta
-                moved = true
-            }
-            if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-                playerPosition.x += playerSpeed * delta
-                moved = true
-            }
-
-            // Update Player Transform
-            playerInstance.transform.setToTranslation(playerPosition)
-
-            // Update Camera to follow player
-            camera.position.set(playerPosition.x, playerPosition.y + 10f, playerPosition.z + 10f)
-            camera.lookAt(playerPosition)
-            camera.update()
-        }
+        sceneManager.dispose()
+        disposableModels.forEach { it.dispose() }
+        hud.dispose()
+        if (::diffuseCubemap.isInitialized) diffuseCubemap.dispose()
+        if (::environmentCubemap.isInitialized) environmentCubemap.dispose()
+        if (::specularCubemap.isInitialized) specularCubemap.dispose()
     }
 }

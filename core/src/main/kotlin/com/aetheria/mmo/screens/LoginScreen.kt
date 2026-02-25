@@ -1,42 +1,41 @@
 package com.aetheria.mmo.screens
 
 import com.aetheria.mmo.AetheriaGame
-import com.aetheria.mmo.screens.GameWorldScreen
+import com.aetheria.mmo.managers.SkinManager
+import com.aetheria.mmo.net.SupabaseClient
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.ScreenAdapter
-import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.*
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.*
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
-import com.badlogic.gdx.utils.viewport.ScreenViewport
-import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
-import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.utils.viewport.FitViewport
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.gotrue.providers.builtin.Email
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-// Keep your original imports
-import com.aetheria.mmo.utils.Constants
-import com.aetheria.mmo.utils.Logger
-
+/**
+ * AAA GLITCH-PUNK LOGIN SCREEN
+ * Uses SkinManager for robust UI rendering.
+ */
 class LoginScreen(private val game: AetheriaGame) : ScreenAdapter() {
 
-    private val stage = Stage(ScreenViewport())
-    private lateinit var skin: Skin
-    private lateinit var backgroundShader: ShaderProgram
+    private val stage = Stage(FitViewport(1920f, 1080f))
+    private val skin = SkinManager.skin
+    private lateinit var glitchShader: ShaderProgram
     private var time = 0f
-
-    // UI Elements
+    
+    private lateinit var statusLabel: Label
     private lateinit var usernameField: TextField
     private lateinit var passwordField: TextField
-    private lateinit var loginButton: TextButton
-    private lateinit var registerButton: TextButton
-    private lateinit var statusLabel: Label
-    private var isLoggingIn = false
 
-    // --- SHADER CODE (VISUALS) ---
+    private val scope = CoroutineScope(Dispatchers.Main)
+
     private val vertexShader = """
         attribute vec4 a_position;
         attribute vec4 a_color;
@@ -57,20 +56,25 @@ class LoginScreen(private val game: AetheriaGame) : ScreenAdapter() {
         #endif
         varying vec4 v_color;
         varying vec2 v_texCoords;
+        uniform sampler2D u_texture;
         uniform float u_time;
         
+        float rand(vec2 co) {
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
         void main() {
             vec2 uv = v_texCoords;
-            // Create a flowing void energy effect
-            float wave = sin(uv.x * 10.0 + u_time) * 0.05;
-            float wave2 = cos(uv.y * 10.0 + u_time * 0.5) * 0.05;
+            float glitch = step(0.98, rand(vec2(u_time * 0.1, floor(uv.y * 50.0))));
+            uv.x += glitch * sin(u_time * 100.0) * 0.01;
             
-            // Base Color: Deep Void (Dark Purple/Black)
-            vec3 color = vec3(0.05, 0.0, 0.1); 
+            float r = texture2D(u_texture, uv + vec2(0.003, 0.0)).r;
+            float g = texture2D(u_texture, uv).g;
+            float b = texture2D(u_texture, uv - vec2(0.003, 0.0)).b;
             
-            // Neon Lines (Cyber Blue & Purple)
-            color += vec3(0.0, 0.8, 1.0) * (0.01 / abs(uv.y - 0.5 + wave)); 
-            color += vec3(0.6, 0.0, 1.0) * (0.01 / abs(uv.x - 0.5 + wave2));
+            vec3 color = vec3(r, g, b);
+            float scanline = sin(uv.y * 1000.0) * 0.05;
+            color -= scanline;
             
             gl_FragColor = v_color * vec4(color, 1.0);
         }
@@ -78,18 +82,8 @@ class LoginScreen(private val game: AetheriaGame) : ScreenAdapter() {
 
     override fun show() {
         Gdx.input.inputProcessor = stage
-
-        // Load Skin
-        skin = Skin(Gdx.files.internal("ui/skin/metalui.json"))
-
-        // Compile Shader
-        backgroundShader = ShaderProgram(vertexShader, fragmentShader)
-        if (!backgroundShader.isCompiled) {
-            Gdx.app.error("Shader", backgroundShader.log)
-        }
-
+        glitchShader = ShaderProgram(vertexShader, fragmentShader)
         buildUI()
-        Logger.info("LoginScreen", "AAA Login Screen Loaded")
     }
 
     private fun buildUI() {
@@ -97,153 +91,130 @@ class LoginScreen(private val game: AetheriaGame) : ScreenAdapter() {
         root.setFillParent(true)
         stage.addActor(root)
 
-        // Create a semi-transparent "Glass" background for the login box
-        val glassPixmap = createGlassPixmap()
-        val glassTexture = Texture(glassPixmap)
-        val glassStyle = TextureRegionDrawable(glassTexture)
-        glassPixmap.dispose()
+        val mainTable = Table(skin)
+        // mainTable.background = skin.getDrawable("dialog") // REMOVED PER DIRECTIVE
+        mainTable.pad(80f)
 
-        val container = Table()
-        container.background = glassStyle
-        container.pad(40f)
+        val titleLabel = Label("AETHERIA: REBORN", skin, "title")
+        mainTable.add(titleLabel).padBottom(60f).row()
 
-        // Title (Your Logic + My Styling)
-        val titleLabel = Label(Constants.GAME_NAME.uppercase(), Label.LabelStyle(skin.getFont("default-font"), Color.CYAN)).apply {
-            setFontScale(2.5f)
-        }
-        val subtitleLabel = Label("VOID HORIZON", Label.LabelStyle(skin.getFont("default-font"), Color.PURPLE)).apply {
-            setFontScale(1.2f)
+        usernameField = TextField("", skin).apply { messageText = "USER ID" }
+        passwordField = TextField("", skin).apply { 
+            messageText = "PASSKEY"
+            isPasswordMode = true 
         }
 
-        // Inputs
-        usernameField = TextField("", skin).apply { messageText = "AGENT ID" }
-        passwordField = TextField("", skin).apply {
-            messageText = "PASSCODE"
-            isPasswordMode = true
-            setPasswordCharacter('•') // Modern dot instead of asterisk
-        }
+        mainTable.add(usernameField).width(700f).height(100f).padBottom(30f).row()
+        mainTable.add(passwordField).width(700f).height(100f).padBottom(50f).row()
 
-        statusLabel = Label("SYSTEM READY", skin).apply {
-            color = Color.GRAY
-            setAlignment(Align.center)
-        }
+        val loginBtn = TextButton("INITIALIZE LINK", skin)
+        loginBtn.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                attemptLogin()
+            }
+        })
+        mainTable.add(loginBtn).width(700f).height(120f).padBottom(25f).row()
 
-        // Buttons
-        loginButton = TextButton("INITIALIZE LINK", skin).apply {
-            addListener(object : ChangeListener() {
-                override fun changed(event: ChangeEvent?, actor: Actor?) {
-                    attemptLogin()
-                }
-            })
-        }
+        val registerBtn = TextButton("NEW AGENT REGISTRATION", skin)
+        registerBtn.color = Color.PINK
+        registerBtn.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                attemptRegister()
+            }
+        })
+        mainTable.add(registerBtn).width(700f).height(100f).padBottom(25f).row()
 
-        registerButton = TextButton("NEW AGENT REGISTRATION", skin).apply {
-            addListener(object : ChangeListener() {
-                override fun changed(event: ChangeEvent?, actor: Actor?) {
-                    attemptRegister()
-                }
-            })
-        }
+        val bypassBtn = TextButton(">> BYPASS AUTH (DEVELOPER MODE) <<", skin)
+        bypassBtn.color = Color.ORANGE
+        bypassBtn.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                // BYPASS AUTH: REWIRED TO DIRECTLY LAUNCH THE GAME WORLD
+                game.screen = GameWorldScreen(game, "Vanguard") 
+            }
+        })
+        mainTable.add(bypassBtn).width(800f).height(140f).padBottom(40f).row()
 
-        val guestButton = TextButton("[ BYPASS AUTH ]", skin).apply {
-            addListener(object : ChangeListener() {
-                override fun changed(event: ChangeEvent?, actor: Actor?) {
-                    loginAsGuest()
-                }
-            })
-        }
+        statusLabel = Label("SYSTEM READY", skin)
+        statusLabel.color = Color.GRAY
+        mainTable.add(statusLabel).padTop(20f)
 
-        // --- LAYOUT ---
-        container.add(titleLabel).padBottom(5f).row()
-        container.add(subtitleLabel).padBottom(40f).row()
-
-        container.add(usernameField).width(350f).height(50f).padBottom(15f).row()
-        container.add(passwordField).width(350f).height(50f).padBottom(20f).row()
-
-        container.add(loginButton).width(350f).height(60f).padBottom(10f).row()
-        container.add(registerButton).width(350f).height(40f).padBottom(10f).row()
-        container.add(guestButton).width(200f).padTop(10f).row()
-        container.add(statusLabel).padTop(20f).row()
-
-        root.add(container)
+        root.add(mainTable)
     }
 
     private fun attemptLogin() {
-        if (isLoggingIn) return
-        val username = usernameField.text.trim()
-        val password = passwordField.text
-
-        if (!validateInput(username, password)) return
-
-        isLoggingIn = true
-        setStatus("AUTHENTICATING...", Color.CYAN)
-        disableButtons()
-
-        // Simulate Net Code
-        Gdx.app.postRunnable {
-            setStatus("ACCESS GRANTED", Color.GREEN) // Simulate successful login
-            game.screen = CharacterSelectScreen(game) // Transition to character selection
+        val email = usernameField.text
+        val pass = passwordField.text
+        if (email.isEmpty() || pass.isEmpty()) {
+            statusLabel.setText("ERROR: INPUT REQUIRED")
+            statusLabel.color = Color.RED
+            return
+        }
+        statusLabel.setText("ATTEMPTING AUTH...")
+        statusLabel.color = Color.CYAN
+        scope.launch {
+            try {
+                SupabaseClient.client.auth.signInWith(Email) {
+                    this.email = email
+                    password = pass
+                }
+                Gdx.app.postRunnable { game.screen = CharacterSelectScreen(game) }
+            } catch (e: Exception) {
+                Gdx.app.postRunnable {
+                    statusLabel.setText("AUTH FAILED: ${e.message}")
+                    statusLabel.color = Color.RED
+                }
+            }
         }
     }
 
     private fun attemptRegister() {
-        setStatus("CONNECTING TO REGISTRY...", Color.YELLOW)
-    }
-
-    private fun loginAsGuest() {
-        setStatus("GUEST ACCESS GRANTED", Color.ORANGE)
-        game.screen = CharacterSelectScreen(game) // Transition to character selection
-    }
-
-    private fun validateInput(u: String, p: String): Boolean {
-        if (u.isEmpty()) { setStatus("ERROR: ID REQUIRED", Color.RED); return false }
-        if (p.isEmpty()) { setStatus("ERROR: PASSCODE REQUIRED", Color.RED); return false }
-        return true
-    }
-
-    private fun setStatus(msg: String, color: Color) {
-        statusLabel.setText(msg)
-        statusLabel.color = color
-    }
-
-    private fun disableButtons() {
-        loginButton.isDisabled = true
-        registerButton.isDisabled = true
-    }
-
-    private fun createGlassPixmap(): Pixmap {
-        val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
-        pixmap.setColor(0f, 0f, 0f, 0.7f) // 70% opacity black
-        pixmap.fill()
-        return pixmap
+        val email = usernameField.text
+        val pass = passwordField.text
+        if (email.isEmpty() || pass.isEmpty()) {
+            statusLabel.setText("ERROR: INPUT REQUIRED")
+            statusLabel.color = Color.RED
+            return
+        }
+        statusLabel.setText("CREATING AGENT...")
+        statusLabel.color = Color.PINK
+        scope.launch {
+            try {
+                SupabaseClient.client.auth.signUpWith(Email) {
+                    this.email = email
+                    password = pass
+                }
+                Gdx.app.postRunnable {
+                    statusLabel.setText("REGISTRATION SUCCESS! PLEASE LOG IN.")
+                    statusLabel.color = Color.GREEN
+                }
+            } catch (e: Exception) {
+                Gdx.app.postRunnable {
+                    statusLabel.setText("REGISTRATION FAILED: ${e.message}")
+                    statusLabel.color = Color.RED
+                }
+            }
+        }
     }
 
     override fun render(delta: Float) {
         time += delta
-
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+        Gdx.gl.glClearColor(0f, 0f, 0.05f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-
-        if (::backgroundShader.isInitialized) {
-            game.batch?.shader = backgroundShader
-            game.batch?.begin()
-            backgroundShader.setUniformf("u_time", time)
-            game.batch?.draw(skin.getRegion("white"), 0f, 0f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-            game.batch?.end()
-            game.batch?.shader = null
-        }
-
+        val batch = game.batch ?: SpriteBatch()
+        batch.projectionMatrix = stage.viewport.camera.combined
+        batch.shader = glitchShader
+        batch.begin()
+        glitchShader.setUniformf("u_time", time)
+        batch.draw(skin.getRegion("white"), 0f, 0f, 1920f, 1080f)
+        batch.end()
+        batch.shader = null
         stage.act(delta)
         stage.draw()
     }
 
-    override fun resize(width: Int, height: Int) {
-        stage.viewport.update(width, height, true)
-    }
-
+    override fun resize(width: Int, height: Int) = stage.viewport.update(width, height, true)
     override fun dispose() {
         stage.dispose()
-        if (::skin.isInitialized) skin.dispose()
-        if (::backgroundShader.isInitialized) backgroundShader.dispose()
+        glitchShader.dispose()
     }
 }

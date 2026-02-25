@@ -9,6 +9,8 @@ import com.badlogic.ashley.core.Component
 class CombatComponent : Component {
     // Ability cooldowns (in seconds)
     val abilityCooldowns = mutableMapOf(
+        "melee" to 0f,
+        "basic_attack" to 0f,
         "Q" to 0f,
         "E" to 0f,
         "R" to 0f,
@@ -17,10 +19,12 @@ class CombatComponent : Component {
 
     // Max cooldowns for each ability
     val maxCooldowns = mutableMapOf(
-        "Q" to 5f,   // Basic attack - 5 sec
-        "E" to 8f,   // Special ability - 8 sec
-        "R" to 15f,  // Ultimate - 15 sec
-        "F" to 10f   // Utility - 10 sec
+        "melee" to 0.5f,        // Melee attack - 0.5 sec
+        "basic_attack" to 1.5f, // Enemy basic attack - 1.5 sec
+        "Q" to 5f,              // Basic attack - 5 sec
+        "E" to 8f,              // Special ability - 8 sec
+        "R" to 15f,             // Ultimate - 15 sec
+        "F" to 10f              // Utility - 10 sec
     )
 
     // Combat stats

@@ -1,184 +1,193 @@
 package com.aetheria.mmo.screens
 
 import com.aetheria.mmo.AetheriaGame
+import com.aetheria.mmo.managers.ResourceManager
+import com.aetheria.mmo.managers.SkinManager
+import com.aetheria.mmo.net.CharacterClass
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.ScreenAdapter
-import com.badlogic.gdx.graphics.*
-import com.badlogic.gdx.graphics.g3d.*
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.scenes.scene2d.utils.DragListener
 import com.badlogic.gdx.utils.Align
-import com.badlogic.gdx.utils.viewport.ScreenViewport
+import com.badlogic.gdx.utils.viewport.FitViewport
+import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
+import net.mgsx.gltf.scene3d.scene.Scene
+import net.mgsx.gltf.scene3d.scene.SceneManager
 
 class CharacterSelectScreen(private val game: AetheriaGame) : ScreenAdapter() {
 
-    // --- UI (2D) ---
-    private val stage = Stage(ScreenViewport())
-    private lateinit var skin: Skin
-
-    // --- 3D SCENE ---
-    private lateinit var modelBatch: ModelBatch
-    private lateinit var environment: Environment
+    private val stage = Stage(FitViewport(1920f, 1080f))
+    private val skin = SkinManager.skin
+    private lateinit var statsPanel: Table
+    private lateinit var abilitiesPanel: Table
+    
+    private lateinit var sceneManager: SceneManager
     private lateinit var cam: PerspectiveCamera
+    private var currentScene: Scene? = null
+    private var modelRotation = 180f
 
-    // Models
-    private val models = HashMap<String, Model>()
-    private var currentInstance: ModelInstance? = null
-
-    // Data Class for Archetypes
-    data class Archetype(
-        val id: String,
+    data class ArchetypeData(
+        val enumVal: CharacterClass,
         val name: String,
         val role: String,
         val desc: String,
         val color: Color,
-        val modelType: Int // Helper for placeholder shape
+        val modelPath: String,
+        val hp: Float,
+        val damage: Float,
+        val mobility: Float,
+        val abilities: List<Pair<String, String>>
     )
 
-    // YOUR DEFINED CLASSES
     private val classes = listOf(
-        Archetype("chrono", "CHRONO VANGUARD", "Tank / Heavy DPS", "Time-bending warrior. Uses shields to freeze damage or hammers to shatter reality.", Color.GOLD, 0),
-        Archetype("nano", "NANO WEAVER", "Medic / Tech DPS", "Bio-hacker. Deploys healing mists or acidic nanite swarms with dual pistols.", Color.LIME, 1),
-        Archetype("void", "VOID STALKER", "Stealth / Burst", "Shadow assassin. Masters of invisibility and critical backstabs.", Color.PURPLE, 2),
-        Archetype("aether", "AETHER MAGUS", "Mage / Control", "Elementalist. Weaves void magic to control the battlefield from afar.", Color.CYAN, 3)
+        ArchetypeData(CharacterClass.Vanguard, "CHRONO VANGUARD", "Tank", "Guardian of time.", Color.GOLD, ResourceManager.CHAR_VANGUARD, 100f, 40f, 30f, listOf("Shield" to "Block incoming damage", "Time Warp" to "Slow nearby enemies")),
+        ArchetypeData(CharacterClass.Weaver, "AETHER MAGUS", "Mage", "Elemental master.", Color.CYAN, ResourceManager.CHAR_WEAVER, 50f, 90f, 40f, listOf("Bolt" to "Fire a magic bolt", "Blast" to "Area of effect explosion")),
+        ArchetypeData(CharacterClass.Strider, "VOID STRIDER", "DPS", "Shadow assassin.", Color.PURPLE, ResourceManager.CHAR_STRIDER, 60f, 100f, 90f, listOf("Blink" to "Teleport forward", "Shadow Strike" to "Critical hit from behind")),
+        ArchetypeData(CharacterClass.Medic, "NANO WEAVER", "Support", "Medic of the void.", Color.LIME, ResourceManager.CHAR_MEDIC, 70f, 30f, 60f, listOf("Heal" to "Restore ally health", "Nano Shield" to "Grant temporary shield"))
     )
 
     private var selectedIndex = 0
 
     override fun show() {
-        // 1. Setup Input
         Gdx.input.inputProcessor = stage
-        skin = Skin(Gdx.files.internal("ui/skin/metalui.json"))
 
-        // 2. Setup 3D Environment
-        modelBatch = ModelBatch()
-        environment = Environment()
-        environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f))
-        environment.add(DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f))
-
-        // 3. Setup Camera (Isometric-ish view)
-        cam = PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-        cam.position.set(5f, 5f, 5f)
-        cam.lookAt(0f, 0f, 0f)
-        cam.near = 1f
-        cam.far = 300f
-        cam.update()
-
-        // 4. Generate Placeholder Models (So it runs NOW)
-        generatePlaceholderModels()
-        updateModelDisplay()
-
-        // 5. Build UI
+        setup3D()
         buildUI()
+        loadCharacter(selectedIndex)
     }
 
-    private fun generatePlaceholderModels() {
-        val mb = ModelBuilder()
-        // Chrono (Box)
-        models["chrono"] = mb.createBox(2f, 4f, 2f, Material(ColorAttribute.createDiffuse(Color.GOLD)), (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong())
-        // Nano (Cylinder)
-        models["nano"] = mb.createCylinder(2f, 4f, 2f, 16, Material(ColorAttribute.createDiffuse(Color.LIME)), (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong())
-        // Void (Cone)
-        models["void"] = mb.createCone(2f, 4f, 2f, 16, Material(ColorAttribute.createDiffuse(Color.PURPLE)), (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong())
-        // Aether (Sphere)
-        models["aether"] = mb.createSphere(3f, 3f, 3f, 24, 24, Material(ColorAttribute.createDiffuse(Color.CYAN)), (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal).toLong())
+    private fun setup3D() {
+        sceneManager = SceneManager()
+        cam = PerspectiveCamera(60f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
+        cam.position.set(0f, 1.5f, 3.5f)
+        cam.lookAt(0f, 1.0f, 0f)
+        cam.near = 0.1f
+        cam.far = 100f
+        sceneManager.setCamera(cam)
+
+        val light = DirectionalLightEx()
+        light.direction.set(1f, -2f, -1f).nor()
+        light.intensity = 2.0f
+        sceneManager.environment.add(light)
+        sceneManager.setAmbientLight(0.4f)
     }
 
-    private fun updateModelDisplay() {
-        val arch = classes[selectedIndex]
-        val model = models[arch.id]
-
-        if (model != null) {
-            currentInstance = ModelInstance(model)
-            // Center it
-            currentInstance!!.transform.setToTranslation(0f, 0f, 0f)
+    private fun loadCharacter(index: Int) {
+        val arch = classes[index]
+        currentScene?.let { sceneManager.removeScene(it) }
+        
+        var modelInstance: ModelInstance? = null
+        val sceneAsset = ResourceManager.getSceneAsset(arch.modelPath)
+        
+        if (sceneAsset != null) {
+            modelInstance = ModelInstance(sceneAsset.scene.model)
+        } else {
+            // Fallback
+            val fallback = ResourceManager.createPlaceholderModel(arch.color, 1f, 2f, "capsule")
+            modelInstance = ModelInstance(fallback)
         }
+
+        currentScene = Scene(modelInstance)
+        currentScene?.modelInstance?.transform?.setToRotation(Vector3.Y, modelRotation)
+        sceneManager.addScene(currentScene!!)
+        
+        updateInfoPanels()
     }
 
     private fun buildUI() {
-        val root = Table()
+        val root = Table(skin)
         root.setFillParent(true)
         stage.addActor(root)
 
-        // LEFT PANEL: Selection List
-        val listTable = Table()
-        listTable.background = skin.newDrawable("white", 0f, 0f, 0f, 0.5f) // Semi-transparent black
-
-        classes.forEachIndexed { index, archetype ->
-            val btn = TextButton(archetype.name, skin).apply {
-                color = archetype.color
-                addListener(object : ClickListener() {
-                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                        selectedIndex = index
-                        updateModelDisplay()
-                        updateInfoPanel(root) // Refresh text
-                    }
-                })
+        val dragArea = Container<Actor>()
+        dragArea.addListener(object : DragListener() {
+            override fun drag(event: InputEvent?, x: Float, y: Float, pointer: Int) {
+                modelRotation -= getDeltaX() * 0.5f
+                currentScene?.modelInstance?.transform?.setToRotation(Vector3.Y, modelRotation)
             }
-            listTable.add(btn).width(220f).height(50f).pad(10f).row()
+        })
+
+        statsPanel = Table(skin)
+        abilitiesPanel = Table(skin)
+
+        val main = Table(skin)
+        main.add(statsPanel).width(450f).growY().pad(20f).left()
+        main.add(dragArea).grow()
+        main.add(abilitiesPanel).width(450f).growY().pad(20f).right()
+        root.add(main).grow().row()
+
+        val bottom = Table(skin)
+        val strip = Table(skin)
+        
+        classes.forEachIndexed { i, a ->
+            val b = TextButton(a.name.replace(" ", "\n"), skin)
+            b.color = a.color
+            b.addListener(object : ClickListener() { 
+                override fun clicked(e: InputEvent?, x: Float, y: Float) { 
+                    selectedIndex = i
+                    loadCharacter(i) 
+                } 
+            })
+            strip.add(b).width(180f).height(100f).pad(10f)
         }
-
-        // RIGHT PANEL: Info & Deploy
-        val infoTable = Table()
-        infoTable.name = "InfoPanel"
-        infoTable.background = skin.newDrawable("white", 0f, 0f, 0f, 0.5f)
-
-        // Add panels to root
-        root.add(listTable).expandY().left().top().pad(20f).width(250f)
-        root.add().expandX() // Spacer for the 3D model in the center
-        root.add(infoTable).expandY().right().bottom().pad(20f).width(350f)
-
-        // Initial populate
-        updateInfoPanel(root)
+        
+        bottom.add(strip).expandX().center().padRight(50f)
+        
+        val deployBtn = TextButton("DEPLOY", skin)
+        deployBtn.addListener(object : ClickListener() { 
+            override fun clicked(e: InputEvent?, x: Float, y: Float) { 
+                game.screen = GameWorldScreen(game, classes[selectedIndex].enumVal.name) 
+            } 
+        })
+        bottom.add(deployBtn).width(300f).height(100f).pad(20f).right()
+        
+        root.add(bottom).growX().height(180f)
     }
 
-    private fun updateInfoPanel(root: Table) {
-        val infoTable = root.findActor<Table>("InfoPanel")
-        infoTable.clear()
-
+    private fun updateInfoPanels() {
         val arch = classes[selectedIndex]
-
-        val nameLbl = Label(arch.name, skin).apply { setFontScale(2f); color = arch.color; setAlignment(Align.center) }
-        val roleLbl = Label("CLASS: ${arch.role}", skin).apply { color = Color.LIGHT_GRAY }
-        val descLbl = Label(arch.desc, skin).apply { wrap = true; setAlignment(Align.center) }
-
-        val deployBtn = TextButton(">> DEPLOY AGENT <<", skin).apply {
-            addListener(object : ClickListener() {
-                override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                    Gdx.app.log("Game", "Deploying as ${arch.name}")
-                }
-            })
+        
+        statsPanel.clear()
+        statsPanel.defaults().pad(15f).left()
+        statsPanel.add(Label(arch.name, skin, "title")).expandX().center().row()
+        statsPanel.add(Label(arch.role, skin)).center().row()
+        statsPanel.add(Label(arch.desc, skin)).growX().center().padBottom(30f).row()
+        
+        statsPanel.add(Label("Health", skin)).row()
+        statsPanel.add(ProgressBar(0f, 100f, 1f, false, skin).apply { value = arch.hp }).growX().row()
+        statsPanel.add(Label("Damage", skin)).row()
+        statsPanel.add(ProgressBar(0f, 100f, 1f, false, skin).apply { value = arch.damage }).growX().row()
+        statsPanel.add(Label("Mobility", skin)).row()
+        statsPanel.add(ProgressBar(0f, 100f, 1f, false, skin).apply { value = arch.mobility }).growX().row()
+        
+        abilitiesPanel.clear()
+        abilitiesPanel.defaults().pad(15f).left()
+        abilitiesPanel.add(Label("ABILITIES", skin, "title")).expandX().center().row()
+        
+        arch.abilities.forEach { (name, desc) ->
+            val t = Table(skin)
+            t.add(Label(name, skin).apply { color = arch.color }).left().row()
+            t.add(Label(desc, skin).apply { setWrap(true) }).growX().left().row()
+            abilitiesPanel.add(t).growX().row()
         }
-
-        infoTable.add(nameLbl).padBottom(10f).growX().row()
-        infoTable.add(roleLbl).padBottom(20f).row()
-        infoTable.add(descLbl).width(300f).padBottom(40f).row()
-        infoTable.add(deployBtn).width(250f).height(60f)
     }
 
     override fun render(delta: Float) {
-        // 1. Clear Screen (Dark Void Blue)
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
-        Gdx.gl.glClearColor(0.05f, 0.05f, 0.1f, 1f)
+        Gdx.gl.glClearColor(0.01f, 0.01f, 0.05f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
-
-        // 2. Render 3D Model
-        if (currentInstance != null) {
-            // Rotate model slightly for effect
-            currentInstance!!.transform.rotate(Vector3.Y, 15f * delta)
-
-            modelBatch.begin(cam)
-            modelBatch.render(currentInstance, environment)
-            modelBatch.end()
-        }
-
-        // 3. Render UI
+        
+        sceneManager.update(delta)
+        sceneManager.render()
+        
         stage.act(delta)
         stage.draw()
     }
@@ -192,7 +201,6 @@ class CharacterSelectScreen(private val game: AetheriaGame) : ScreenAdapter() {
 
     override fun dispose() {
         stage.dispose()
-        modelBatch.dispose()
-        models.values.forEach { it.dispose() }
+        sceneManager.dispose()
     }
 }

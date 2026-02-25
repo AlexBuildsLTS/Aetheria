@@ -5,10 +5,12 @@ import com.badlogic.ashley.core.PooledEngine
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import com.aetheria.mmo.components.*
+import com.aetheria.mmo.managers.ResourceManager
+import com.badlogic.gdx.graphics.g3d.ModelInstance
 
 /**
  * Enemy Factory
- * Creates various enemy types
+ * Creates various enemy types using procedural primitives.
  */
 object EnemyFactory {
 
@@ -51,8 +53,9 @@ object EnemyFactory {
             })
 
             add(engine.createComponent(ModelComponent::class.java).apply {
-                val sceneAsset = com.aetheria.mmo.managers.ResourceManager.getSceneAsset("mob_rat_robot.glb")
-                modelInstance = com.badlogic.gdx.graphics.g3d.ModelInstance(sceneAsset.scene.model)
+                // Procedural Drone (Red Sphere)
+                val model = ResourceManager.createPlaceholderModel(Color.RED, 1f, 1f)
+                modelInstance = ModelInstance(model)
             })
             add(engine.createComponent(AnimationComponent::class.java))
             add(engine.createComponent(StateComponent::class.java))
@@ -113,8 +116,9 @@ object EnemyFactory {
             })
 
             add(engine.createComponent(ModelComponent::class.java).apply {
-                val sceneAsset = com.aetheria.mmo.managers.ResourceManager.getSceneAsset("mob_boar_armored.glb")
-                modelInstance = com.badlogic.gdx.graphics.g3d.ModelInstance(sceneAsset.scene.model)
+                // Procedural Guardian (Blue Capsule)
+                val model = ResourceManager.createPlaceholderModel(Color.BLUE, 1.5f, 3f)
+                modelInstance = ModelInstance(model)
             })
             add(engine.createComponent(AnimationComponent::class.java))
             add(engine.createComponent(StateComponent::class.java))
@@ -165,8 +169,9 @@ object EnemyFactory {
             })
 
             add(engine.createComponent(ModelComponent::class.java).apply {
-                val sceneAsset = com.aetheria.mmo.managers.ResourceManager.getSceneAsset("mob_neon_stalker.glb")
-                modelInstance = com.badlogic.gdx.graphics.g3d.ModelInstance(sceneAsset.scene.model)
+                // Procedural Stalker (Purple Capsule)
+                val model = ResourceManager.createPlaceholderModel(Color.PURPLE, 0.8f, 2f)
+                modelInstance = ModelInstance(model)
             })
             add(engine.createComponent(AnimationComponent::class.java))
             add(engine.createComponent(StateComponent::class.java))
